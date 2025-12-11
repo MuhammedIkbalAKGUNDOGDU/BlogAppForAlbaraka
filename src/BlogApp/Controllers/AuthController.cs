@@ -73,6 +73,17 @@ namespace BlogApp.Controllers
             if (!validPassword)
                 return BadRequest(new { message = "Invalid email or password" });
 
+            // Kullanıcı durumu kontrolü
+            if (user.Status == UserStatus.Banned)
+            {
+                return BadRequest(new { message = "Hesabınız yasaklanmıştır. Giriş yapamazsınız. Lütfen yönetici ile iletişime geçin." });
+            }
+
+            if (user.Status == UserStatus.Suspended)
+            {
+                return BadRequest(new { message = "Hesabınız askıya alınmıştır. Giriş yapamazsınız. Lütfen yönetici ile iletişime geçin." });
+            }
+
             // JWT Token üret
             var token = GenerateToken(user);
 
