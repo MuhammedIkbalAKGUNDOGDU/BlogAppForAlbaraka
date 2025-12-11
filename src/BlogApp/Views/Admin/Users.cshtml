@@ -80,6 +80,14 @@ let currentRole = '';
 let currentStatus = '';
 
 document.addEventListener('DOMContentLoaded', function() {
+    // URL'den status parametresini oku
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+    if (statusParam !== null) {
+        currentStatus = statusParam;
+        document.getElementById('statusFilter').value = statusParam;
+    }
+
     loadUsers();
 
     // Arama input'u için debounce (500ms bekle)

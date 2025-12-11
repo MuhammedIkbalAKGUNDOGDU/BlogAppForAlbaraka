@@ -3,9 +3,19 @@
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
 }
 
+<style>
+    .card[style*="cursor: pointer"] {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card[style*="cursor: pointer"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+
 <div class="row">
     <div class="col-md-3 mb-4">
-        <div class="card text-white bg-primary">
+        <div class="card text-white bg-primary" style="cursor: pointer;" onclick="window.location.href='/Admin/Users'">
             <div class="card-body">
                 <h5 class="card-title">Toplam Kullanıcı</h5>
                 <h2 id="totalUsers">-</h2>
@@ -13,7 +23,7 @@
         </div>
     </div>
     <div class="col-md-3 mb-4">
-        <div class="card text-white bg-success">
+        <div class="card text-white bg-success" style="cursor: pointer;" onclick="window.location.href='/Admin/Users?status=0'">
             <div class="card-body">
                 <h5 class="card-title">Aktif Kullanıcı</h5>
                 <h2 id="activeUsers">-</h2>
@@ -21,7 +31,7 @@
         </div>
     </div>
     <div class="col-md-3 mb-4">
-        <div class="card text-white bg-warning">
+        <div class="card text-white bg-warning" style="cursor: pointer;" onclick="window.location.href='/Admin/Posts'">
             <div class="card-body">
                 <h5 class="card-title">Draft Yazılar</h5>
                 <h2 id="draftPosts">-</h2>
@@ -29,7 +39,7 @@
         </div>
     </div>
     <div class="col-md-3 mb-4">
-        <div class="card text-white bg-info">
+        <div class="card text-white bg-info" style="cursor: pointer;" onclick="window.location.href='/Admin/PublishedPosts'">
             <div class="card-body">
                 <h5 class="card-title">Yayında Yazılar</h5>
                 <h2 id="publishedPosts">-</h2>
@@ -40,7 +50,7 @@
 
 <div class="row">
     <div class="col-md-6 mb-4">
-        <div class="card text-white bg-danger">
+        <div class="card text-white bg-danger" style="cursor: pointer;" onclick="window.location.href='/Admin/Users?status=1'">
             <div class="card-body">
                 <h5 class="card-title">Askıya Alınan</h5>
                 <h2 id="suspendedUsers">-</h2>
@@ -48,7 +58,7 @@
         </div>
     </div>
     <div class="col-md-6 mb-4">
-        <div class="card text-white bg-dark">
+        <div class="card text-white bg-dark" style="cursor: pointer;" onclick="window.location.href='/Admin/Users?status=2'">
             <div class="card-body">
                 <h5 class="card-title">Yasaklanan</h5>
                 <h2 id="bannedUsers">-</h2>
