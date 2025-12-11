@@ -79,6 +79,12 @@ namespace BlogApp.Controllers
 
             return View(posts);
         }
+
+        // GET: BlogPost/Details/{id}
+        public IActionResult Details(int id)
+        {
+            return View();
+        }
     }
 
     [Route("api/blogpost")]
@@ -111,7 +117,7 @@ namespace BlogApp.Controllers
                     p.CoverImage,
                     p.CreatedAt,
                     p.ViewCount,
-                    User = new { p.User!.FirstName, p.User.LastName },
+                    User = new { p.User!.Id, p.User.FirstName, p.User.LastName, p.User.ProfileImage },
                     Category = new { p.Category!.Name },
                     CommentCount = p.Comments != null ? p.Comments.Count : 0,
                     LikeCount = p.Likes != null ? p.Likes.Count : 0
@@ -119,6 +125,165 @@ namespace BlogApp.Controllers
                 .ToListAsync();
 
             return Ok(posts);
+        }
+
+        // GET: api/blogpost/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPost(int id)
+        {
+            var post = await _context.BlogPosts
+                .Include(p => p.User)
+                .Include(p => p.Category)
+                .Include(p => p.Comments!)
+                    .ThenInclude(c => c.User)
+                .Include(p => p.Likes!)
+                    .ThenInclude(l => l.User)
+                .Where(p => p.Id == id && p.IsDraft == false)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Title,
+                    p.Content,
+                    p.CoverImage,
+                    p.CreatedAt,
+                    p.UpdatedAt,
+                    p.ViewCount,
+                    User = new 
+                    { 
+                        p.User!.Id, 
+                        p.User.FirstName, 
+                        p.User.LastName, 
+                        p.User.ProfileImage,
+                        p.User.Email
+                    },
+                    Category = new { p.Category!.Id, p.Category.Name },
+                    Comments = p.Comments.OrderByDescending(c => c.CreatedAt).Select(c => new
+                    {
+                        c.Id,
+                        c.Content,
+                        c.CreatedAt,
+                        User = new { c.User!.Id, c.User.FirstName, c.User.LastName, c.User.ProfileImage }
+                    }).ToList(),
+                    LikeCount = p.Likes.Count
+                })
+                .FirstOrDefaultAsync();
+
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            // ViewCount artır
+            var postEntity = await _context.BlogPosts.FindAsync(id);
+            if (postEntity != null)
+            {
+                postEntity.ViewCount++;
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(post);
+        }
+
+        // POST: api/blogpost/{id}/comment
+        [HttpPost("{id}/comment")]
+        public async Task<IActionResult> AddComment(int id, [FromBody] CommentCreateDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Content))
+            {
+                return BadRequest(new { message = "Yorum içeriği gereklidir." });
+            }
+
+            if (dto.UserId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı bilgisi bulunamadı." });
+            }
+
+            var post = await _context.BlogPosts.FindAsync(id);
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            var comment = new Comment
+            {
+                PostId = id,
+                UserId = dto.UserId,
+                Content = dto.Content.Trim(),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            // Yorumu kullanıcı bilgisiyle birlikte döndür
+            var commentWithUser = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.Id == comment.Id)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Content,
+                    c.CreatedAt,
+                    User = new { c.User!.Id, c.User.FirstName, c.User.LastName, c.User.ProfileImage }
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(new { message = "Yorum eklendi.", comment = commentWithUser });
+        }
+
+        // POST: api/blogpost/{id}/like
+        [HttpPost("{id}/like")]
+        public async Task<IActionResult> ToggleLike(int id, [FromBody] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı bilgisi bulunamadı." });
+            }
+
+            var post = await _context.BlogPosts.FindAsync(id);
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            var existingLike = await _context.PostLikes
+                .FirstOrDefaultAsync(l => l.PostId == id && l.UserId == userId);
+
+            if (existingLike != null)
+            {
+                // Like'ı kaldır
+                _context.PostLikes.Remove(existingLike);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Beğeni kaldırıldı.", liked = false });
+            }
+            else
+            {
+                // Like ekle
+                var like = new PostLike
+                {
+                    PostId = id,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.PostLikes.Add(like);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Beğenildi.", liked = true });
+            }
+        }
+
+        // GET: api/blogpost/{id}/is-liked
+        [HttpGet("{id}/is-liked")]
+        public async Task<IActionResult> IsLiked(int id, [FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return Ok(new { isLiked = false });
+            }
+
+            var isLiked = await _context.PostLikes
+                .AnyAsync(l => l.PostId == id && l.UserId == userId);
+
+            return Ok(new { isLiked });
         }
     }
 }

@@ -1,0 +1,350 @@
+@{
+    ViewData["Title"] = "Blog Detay";
+}
+
+<style>
+    .author-sidebar {
+        z-index: 1 !important;
+    }
+</style>
+
+<div class="container mt-4">
+    <div id="postContainer">
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPostId = null;
+let currentUserId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // URL'den post ID'yi al
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id') || window.location.pathname.split('/').pop();
+    
+    if (!postId || isNaN(postId)) {
+        document.getElementById('postContainer').innerHTML = '<div class="alert alert-danger">Geçersiz yazı ID\'si.</div>';
+        return;
+    }
+
+    currentPostId = parseInt(postId);
+    
+    // Kullanıcı bilgisini al
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            currentUserId = user.id || user.Id;
+        } catch (e) {
+            console.error('Kullanıcı bilgisi okunamadı:', e);
+        }
+    }
+
+    loadPost();
+});
+
+async function loadPost() {
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}`);
+        if (res.ok) {
+            const post = await res.json();
+            renderPost(post);
+            
+            // Like durumunu kontrol et
+            if (currentUserId) {
+                checkLikeStatus();
+                checkFollowStatus(post.user.id);
+            }
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                document.getElementById('postContainer').innerHTML = `<div class="alert alert-danger">${json.message || 'Yazı yüklenemedi.'}</div>`;
+            } catch {
+                document.getElementById('postContainer').innerHTML = '<div class="alert alert-danger">Yazı yüklenemedi.</div>';
+            }
+        }
+    } catch (error) {
+        document.getElementById('postContainer').innerHTML = '<div class="alert alert-danger">Bir hata oluştu.</div>';
+    }
+}
+
+function renderPost(post) {
+    const container = document.getElementById('postContainer');
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-lg-8">
+                <article class="card shadow-sm mb-4">
+                    ${post.coverImage ? `<img src="${post.coverImage}" class="card-img-top" alt="${post.title}" style="max-height: 400px; object-fit: cover;">` : ''}
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h1 class="card-title">${post.title}</h1>
+                                <span class="badge bg-secondary">${post.category.name}</span>
+                            </div>
+                        </div>
+                        <div class="text-muted mb-3">
+                            <small>
+                                <i class="bi bi-calendar"></i> ${new Date(post.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })} | 
+                                <i class="bi bi-eye"></i> ${post.viewCount} görüntüleme
+                            </small>
+                        </div>
+                        <div class="post-content">
+                            ${post.content.split('\n').map(p => `<p>${p}</p>`).join('')}
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button id="likeBtn" class="btn btn-outline-danger" onclick="toggleLike()">
+                                    <i class="bi bi-heart" id="likeIcon"></i> <span id="likeText">Beğen</span>
+                                    <span class="badge bg-danger ms-2" id="likeCount">${post.likeCount}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Yorumlar -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Yorumlar (${post.comments.length})</h5>
+                    </div>
+                    <div class="card-body">
+                        ${currentUserId ? `
+                            <div class="mb-4">
+                                <textarea class="form-control" id="commentText" rows="3" placeholder="Yorumunuzu yazın..."></textarea>
+                                <button class="btn btn-primary mt-2" onclick="addComment()">Yorum Yap</button>
+                            </div>
+                        ` : '<p class="text-muted">Yorum yapmak için <a href="/AuthView/Login">giriş yapın</a>.</p>'}
+                        
+                        <div id="commentsList">
+                            ${post.comments.map(comment => `
+                                <div class="border-bottom pb-3 mb-3">
+                                    <div class="d-flex align-items-start">
+                                        ${comment.user.profileImage ? 
+                                            `<img src="${comment.user.profileImage}" class="rounded-circle me-2" width="40" height="40" alt="${comment.user.firstName}">` :
+                                            `<div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">${comment.user.firstName[0]}${comment.user.lastName[0]}</div>`
+                                        }
+                                        <div class="flex-grow-1">
+                                            <strong>${comment.user.firstName} ${comment.user.lastName}</strong>
+                                            <small class="text-muted ms-2">${new Date(comment.createdAt).toLocaleString('tr-TR')}</small>
+                                            <p class="mb-0 mt-1">${comment.content}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar - Yazar Bilgisi -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm sticky-top author-sidebar" style="top: 20px;">
+                    <div class="card-body text-center">
+                        ${post.user.profileImage ? 
+                            `<img src="${post.user.profileImage}" class="rounded-circle mb-3" width="100" height="100" alt="${post.user.firstName}">` :
+                            `<div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2rem;">${post.user.firstName[0]}${post.user.lastName[0]}</div>`
+                        }
+                        <h5>${post.user.firstName} ${post.user.lastName}</h5>
+                        <p class="text-muted">${post.user.email}</p>
+                        ${currentUserId && currentUserId !== post.user.id ? `
+                            <button id="followBtn" class="btn btn-primary w-100" onclick="toggleFollow(${post.user.id})">
+                                <span id="followText">Takip Et</span>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function toggleLike() {
+    if (!currentUserId) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}/like`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentUserId)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const likeBtn = document.getElementById('likeBtn');
+            const likeIcon = document.getElementById('likeIcon');
+            const likeText = document.getElementById('likeText');
+            const likeCount = document.getElementById('likeCount');
+            
+            if (data.liked) {
+                likeBtn.classList.remove('btn-outline-danger');
+                likeBtn.classList.add('btn-danger');
+                likeIcon.classList.remove('bi-heart');
+                likeIcon.classList.add('bi-heart-fill');
+                likeText.textContent = 'Beğendiniz';
+            } else {
+                likeBtn.classList.remove('btn-danger');
+                likeBtn.classList.add('btn-outline-danger');
+                likeIcon.classList.remove('bi-heart-fill');
+                likeIcon.classList.add('bi-heart');
+                likeText.textContent = 'Beğen';
+            }
+            
+            likeCount.textContent = parseInt(likeCount.textContent) + (data.liked ? 1 : -1);
+        }
+    } catch (error) {
+        console.error('Like hatası:', error);
+    }
+}
+
+async function checkLikeStatus() {
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}/is-liked?userId=${currentUserId}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.isLiked) {
+                const likeBtn = document.getElementById('likeBtn');
+                const likeIcon = document.getElementById('likeIcon');
+                const likeText = document.getElementById('likeText');
+                
+                likeBtn.classList.remove('btn-outline-danger');
+                likeBtn.classList.add('btn-danger');
+                likeIcon.classList.remove('bi-heart');
+                likeIcon.classList.add('bi-heart-fill');
+                likeText.textContent = 'Beğendiniz';
+            }
+        }
+    } catch (error) {
+        console.error('Like durumu kontrol hatası:', error);
+    }
+}
+
+async function toggleFollow(userId) {
+    if (!currentUserId) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/user/${userId}/follow`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentUserId)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const followBtn = document.getElementById('followBtn');
+            const followText = document.getElementById('followText');
+            
+            if (data.isFollowing) {
+                followBtn.classList.remove('btn-primary');
+                followBtn.classList.add('btn-secondary');
+                followText.textContent = 'Takipten Çık';
+            } else {
+                followBtn.classList.remove('btn-secondary');
+                followBtn.classList.add('btn-primary');
+                followText.textContent = 'Takip Et';
+            }
+        }
+    } catch (error) {
+        console.error('Follow hatası:', error);
+    }
+}
+
+async function checkFollowStatus(userId) {
+    if (!currentUserId || currentUserId === userId) return;
+    
+    try {
+        const res = await fetch(`/api/user/${userId}/is-following?followerId=${currentUserId}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.isFollowing) {
+                const followBtn = document.getElementById('followBtn');
+                const followText = document.getElementById('followText');
+                
+                followBtn.classList.remove('btn-primary');
+                followBtn.classList.add('btn-secondary');
+                followText.textContent = 'Takipten Çık';
+            }
+        }
+    } catch (error) {
+        console.error('Follow durumu kontrol hatası:', error);
+    }
+}
+
+async function addComment() {
+    if (!currentUserId) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    const commentText = document.getElementById('commentText').value.trim();
+    if (!commentText) {
+        alert('Lütfen yorum yazın.');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                postId: currentPostId,
+                userId: currentUserId,
+                content: commentText
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('commentText').value = '';
+            
+            // Yorumu listeye ekle
+            const commentsList = document.getElementById('commentsList');
+            const comment = data.comment;
+            const commentHtml = `
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex align-items-start">
+                        ${comment.user.profileImage ? 
+                            `<img src="${comment.user.profileImage}" class="rounded-circle me-2" width="40" height="40" alt="${comment.user.firstName}">` :
+                            `<div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">${comment.user.firstName[0]}${comment.user.lastName[0]}</div>`
+                        }
+                        <div class="flex-grow-1">
+                            <strong>${comment.user.firstName} ${comment.user.lastName}</strong>
+                            <small class="text-muted ms-2">${new Date(comment.createdAt).toLocaleString('tr-TR')}</small>
+                            <p class="mb-0 mt-1">${comment.content}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            commentsList.insertAdjacentHTML('afterbegin', commentHtml);
+            
+            // Yorum sayısını güncelle
+            const header = document.querySelector('.card-header h5');
+            const currentCount = parseInt(header.textContent.match(/\d+/)[0]);
+            header.textContent = `Yorumlar (${currentCount + 1})`;
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                alert(json.message || 'Yorum eklenemedi.');
+            } catch {
+                alert('Yorum eklenemedi.');
+            }
+        }
+    } catch (error) {
+        console.error('Yorum ekleme hatası:', error);
+        alert('Bir hata oluştu.');
+    }
+}
+</script>

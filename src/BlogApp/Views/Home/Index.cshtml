@@ -32,7 +32,7 @@ async function loadPosts() {
             }
 
             container.innerHTML = posts.map(post => `
-                <div class="card mb-4 shadow-sm">
+                <div class="card mb-4 shadow-sm" style="cursor: pointer;" onclick="window.location.href='/BlogPost/Details?id=${post.id}'">
                     ${post.coverImage ? `<img src="${post.coverImage}" class="card-img-top" alt="${post.title}" style="max-height: 300px; object-fit: cover;">` : ''}
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
