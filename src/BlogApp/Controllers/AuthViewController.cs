@@ -13,5 +13,17 @@ namespace BlogApp.Controllers
         {
             return View();
         }
+
+        // GET: AuthView/ForgotPassword
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        // GET: AuthView/ResetPassword
+        public IActionResult ResetPassword()
+        {
+            return View();
+        }
     }
 }

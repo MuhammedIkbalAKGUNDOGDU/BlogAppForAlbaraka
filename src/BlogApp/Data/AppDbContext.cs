@@ -15,6 +15,7 @@ namespace BlogApp.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<PostLike> PostLikes { get; set; }
         public DbSet<EmailQueue> EmailQueues { get; set; }  // Email kuyruğu için DbSet
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }  // Şifre sıfırlama token'ları için DbSet
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
