@@ -9,18 +9,27 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label for="searchInput" class="form-label">
                         <i class="bi bi-search"></i> Arama
                     </label>
                     <input type="text" class="form-control" id="searchInput" placeholder="Başlık, içerik veya yazar adında ara..." />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="categoryFilter" class="form-label">
                         <i class="bi bi-funnel"></i> Kategori Filtresi
                     </label>
                     <select class="form-select" id="categoryFilter">
                         <option value="">Tüm Kategoriler</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="sortBy" class="form-label">
+                        <i class="bi bi-sort-down"></i> Sıralama
+                    </label>
+                    <select class="form-select" id="sortBy">
+                        <option value="date">Tarihe Göre (Yeni → Eski)</option>
+                        <option value="popularity">Popülerlik</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -45,6 +54,7 @@
 let searchTimeout = null;
 let currentSearch = '';
 let currentCategoryId = '';
+let currentSortBy = 'date';
 
 document.addEventListener('DOMContentLoaded', function() {
     loadCategories();
@@ -62,6 +72,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Kategori filtresi değiştiğinde
     document.getElementById('categoryFilter').addEventListener('change', function() {
         currentCategoryId = this.value;
+        loadPosts();
+    });
+
+    // Sıralama değiştiğinde
+    document.getElementById('sortBy').addEventListener('change', function() {
+        currentSortBy = this.value;
         loadPosts();
     });
 });
@@ -101,8 +117,9 @@ async function loadPosts() {
             url += `search=${encodeURIComponent(currentSearch)}&`;
         }
         if (currentCategoryId) {
-            url += `categoryId=${currentCategoryId}`;
+            url += `categoryId=${currentCategoryId}&`;
         }
+        url += `sortBy=${currentSortBy}`;
 
         const res = await fetch(url);
         if (res.ok) {
@@ -172,8 +189,10 @@ async function loadPosts() {
 function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('categoryFilter').value = '';
+    document.getElementById('sortBy').value = 'date';
     currentSearch = '';
     currentCategoryId = '';
+    currentSortBy = 'date';
     loadPosts();
 }
 

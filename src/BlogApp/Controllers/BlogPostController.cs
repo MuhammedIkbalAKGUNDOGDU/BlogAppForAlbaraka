@@ -108,7 +108,7 @@ namespace BlogApp.Controllers
 
         // GET: api/blogpost/published
         [HttpGet("published")]
-        public async Task<IActionResult> GetPublishedPosts([FromQuery] string? search = null, [FromQuery] int? categoryId = null)
+        public async Task<IActionResult> GetPublishedPosts([FromQuery] string? search = null, [FromQuery] int? categoryId = null, [FromQuery] string? sortBy = "date")
         {
             var query = _context.BlogPosts
                 .Include(p => p.User)
@@ -156,6 +156,11 @@ namespace BlogApp.Controllers
                 })
                 .ToListAsync();
 
+            // Popülerlik puanı hesaplama katsayıları
+            const double LIKE_WEIGHT = 3.0;      // Beğeni katsayısı
+            const double COMMENT_WEIGHT = 2.0;  // Yorum katsayısı
+            const double VIEW_WEIGHT = 0.1;      // Görüntülenme katsayısı (daha düşük çünkü sayıları çok yüksek olabilir)
+
             // Arama varsa relevance score'a göre sırala (memory'de)
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -179,10 +184,12 @@ namespace BlogApp.Controllers
                                         (p.User != null && (p.User.FirstName.ToLower().Contains(searchTerm) || 
                                                            p.User.LastName.ToLower().Contains(searchTerm) ||
                                                            (p.User.FirstName + " " + p.User.LastName).ToLower().Contains(searchTerm)) ? 2 : 0) +
-                                        (p.Content.ToLower().Contains(searchTerm) ? 1 : 0)
+                                        (p.Content.ToLower().Contains(searchTerm) ? 1 : 0),
+                        // Popülerlik puanı: (beğeni * 3) + (yorum * 2) + (görüntülenme * 0.1)
+                        PopularityScore = (p.LikeCount * LIKE_WEIGHT) + (p.CommentCount * COMMENT_WEIGHT) + (p.ViewCount * VIEW_WEIGHT)
                     })
                     .OrderByDescending(p => p.RelevanceScore)
-                    .ThenByDescending(p => p.CreatedAt)
+                    .ThenByDescending(p => sortBy == "popularity" ? p.PopularityScore : p.CreatedAt)
                     .Select(p => new
                     {
                         p.Id,
@@ -201,10 +208,52 @@ namespace BlogApp.Controllers
             }
             else
             {
-                // Arama yoksa sadece tarihe göre sırala
-                posts = posts
-                    .OrderByDescending(p => p.CreatedAt)
-                    .ToList();
+                // Arama yoksa sıralama tipine göre sırala
+                if (sortBy == "popularity")
+                {
+                    // Popülerlik puanına göre sırala
+                    posts = posts
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.Title,
+                            p.Content,
+                            p.CoverImage,
+                            p.CreatedAt,
+                            p.ViewCount,
+                            p.CategoryId,
+                            p.User,
+                            p.Category,
+                            p.CommentCount,
+                            p.LikeCount,
+                            // Popülerlik puanı: (beğeni * 3) + (yorum * 2) + (görüntülenme * 0.1)
+                            PopularityScore = (p.LikeCount * LIKE_WEIGHT) + (p.CommentCount * COMMENT_WEIGHT) + (p.ViewCount * VIEW_WEIGHT)
+                        })
+                        .OrderByDescending(p => p.PopularityScore)
+                        .ThenByDescending(p => p.CreatedAt) // Aynı puanda tarihe göre
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.Title,
+                            p.Content,
+                            p.CoverImage,
+                            p.CreatedAt,
+                            p.ViewCount,
+                            p.CategoryId,
+                            p.User,
+                            p.Category,
+                            p.CommentCount,
+                            p.LikeCount
+                        })
+                        .ToList();
+                }
+                else
+                {
+                    // Tarihe göre sırala (yeniden eskiye - default)
+                    posts = posts
+                        .OrderByDescending(p => p.CreatedAt)
+                        .ToList();
+                }
             }
 
             return Ok(posts);
