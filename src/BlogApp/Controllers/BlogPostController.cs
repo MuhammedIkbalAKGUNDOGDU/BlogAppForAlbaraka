@@ -115,7 +115,9 @@ namespace BlogApp.Controllers
                 .Include(p => p.Category)
                 .Include(p => p.Comments)
                 .Include(p => p.Likes)
-                .Where(p => p.IsDraft == false);
+                .Where(p => p.IsDraft == false && 
+                           p.User != null && 
+                           p.User.Status == UserStatus.Active); // Sadece aktif kullanıcıların yazıları
 
             // Kategori filtresi
             if (categoryId.HasValue && categoryId.Value > 0)
@@ -216,10 +218,13 @@ namespace BlogApp.Controllers
                 .Include(p => p.User)
                 .Include(p => p.Category)
                 .Include(p => p.Comments!)
-                    .ThenInclude(c => c.User)
+                .ThenInclude(c => c.User)
                 .Include(p => p.Likes!)
-                    .ThenInclude(l => l.User)
-                .Where(p => p.Id == id && p.IsDraft == false)
+                .ThenInclude(l => l.User)
+                .Where(p => p.Id == id && 
+                           p.IsDraft == false && 
+                           p.User != null && 
+                           p.User.Status == UserStatus.Active) // Sadece aktif kullanıcıların yazıları
                 .Select(p => new
                 {
                     p.Id,
