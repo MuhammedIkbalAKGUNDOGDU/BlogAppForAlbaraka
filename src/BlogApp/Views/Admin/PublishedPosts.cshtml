@@ -1,0 +1,127 @@
+@{
+    ViewData["Title"] = "Yayında Yazılar";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5>Yayında Olan Yazılar</h5>
+    </div>
+    <div class="card-body">
+        <div id="alertContainer"></div>
+        <div id="postsList">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadPublishedPosts();
+});
+
+async function loadPublishedPosts() {
+    try {
+        const res = await fetch('/api/admin/published-posts');
+        if (res.ok) {
+            const posts = await res.json();
+            const container = document.getElementById('postsList');
+            
+            if (posts.length === 0) {
+                container.innerHTML = '<p class="text-muted">Yayında olan yazı bulunmamaktadır.</p>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${post.title}</h5>
+                        <p class="card-text text-muted">${post.content.substring(0, 200)}${post.content.length > 200 ? '...' : ''}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">
+                                    <strong>Yazar:</strong> ${post.user.firstName} ${post.user.lastName} (${post.user.email})<br>
+                                    <strong>Kategori:</strong> ${post.category.name}<br>
+                                    <strong>Tarih:</strong> ${new Date(post.createdAt).toLocaleString('tr-TR')}<br>
+                                    <strong>Görüntüleme:</strong> ${post.viewCount} | 
+                                    <strong>Yorum:</strong> ${post.commentCount} | 
+                                    <strong>Beğeni:</strong> ${post.likeCount}
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-warning btn-sm me-2" onclick="unpublishPost(${post.id})">
+                                    <i class="bi bi-arrow-down-circle"></i> Draft'a Çek
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deletePost(${post.id})">
+                                    <i class="bi bi-trash"></i> Sil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            document.getElementById('postsList').innerHTML = '<p class="text-danger">Yazılar yüklenemedi.</p>';
+        }
+    } catch (error) {
+        document.getElementById('postsList').innerHTML = '<p class="text-danger">Bir hata oluştu.</p>';
+    }
+}
+
+async function unpublishPost(id) {
+    if (!confirm('Bu yazıyı draft\'a çekmek istediğinize emin misiniz? Yazı yayından kaldırılacak.')) return;
+
+    try {
+        const res = await fetch(`/api/admin/unpublish-post/${id}`, {
+            method: 'POST'
+        });
+
+        const txt = await res.text();
+        if (res.ok) {
+            showAlert('success', 'Yazı draft\'a çekildi.');
+            loadPublishedPosts();
+        } else {
+            const json = JSON.parse(txt);
+            showAlert('danger', json.message || 'Yazı draft\'a çekilemedi.');
+        }
+    } catch (error) {
+        showAlert('danger', 'Bir hata oluştu.');
+    }
+}
+
+async function deletePost(id) {
+    if (!confirm('Bu yazıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+
+    try {
+        const res = await fetch(`/api/admin/delete-post/${id}`, {
+            method: 'DELETE'
+        });
+
+        const txt = await res.text();
+        if (res.ok) {
+            showAlert('success', 'Yazı başarıyla silindi.');
+            loadPublishedPosts();
+        } else {
+            const json = JSON.parse(txt);
+            showAlert('danger', json.message || 'Yazı silinemedi.');
+        }
+    } catch (error) {
+        showAlert('danger', 'Bir hata oluştu.');
+    }
+}
+
+function showAlert(type, message) {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    setTimeout(() => container.innerHTML = '', 5000);
+}
+</script>

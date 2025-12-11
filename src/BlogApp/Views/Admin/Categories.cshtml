@@ -1,0 +1,141 @@
+@{
+    ViewData["Title"] = "Kategori Yönetimi";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Yeni Kategori Ekle</h5>
+            </div>
+            <div class="card-body">
+                <div id="alertContainer"></div>
+                <form id="categoryForm">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Kategori Adı</label>
+                        <input type="text" class="form-control" id="categoryName" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span id="submitSpinner" class="spinner-border spinner-border-sm d-none me-2" role="status"></span>
+                        Kategori Ekle
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Mevcut Kategoriler</h5>
+            </div>
+            <div class="card-body">
+                <div id="categoriesList">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategories();
+    
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('categoryName').value.trim();
+        if (!name) return;
+
+        const spinner = document.getElementById('submitSpinner');
+        spinner.classList.remove('d-none');
+        const button = this.querySelector('button[type="submit"]');
+        button.disabled = true;
+
+        try {
+            const res = await fetch('/api/category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+
+            const txt = await res.text();
+            if (res.ok) {
+                showAlert('success', 'Kategori başarıyla eklendi.');
+                document.getElementById('categoryName').value = '';
+                loadCategories();
+            } else {
+                const json = JSON.parse(txt);
+                showAlert('danger', json.message || 'Kategori eklenemedi.');
+            }
+        } catch (error) {
+            showAlert('danger', 'Bir hata oluştu.');
+        } finally {
+            spinner.classList.add('d-none');
+            button.disabled = false;
+        }
+    });
+});
+
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/category');
+        if (res.ok) {
+            const categories = await res.json();
+            const container = document.getElementById('categoriesList');
+            
+            if (categories.length === 0) {
+                container.innerHTML = '<p class="text-muted">Henüz kategori eklenmemiş.</p>';
+                return;
+            }
+
+            container.innerHTML = categories.map(cat => `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <span><strong>${cat.name}</strong></span>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id}, '${cat.name}')">
+                        <i class="bi bi-trash"></i> Sil
+                    </button>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        document.getElementById('categoriesList').innerHTML = '<p class="text-danger">Kategoriler yüklenemedi.</p>';
+    }
+}
+
+async function deleteCategory(id, name) {
+    if (!confirm(`"${name}" kategorisini silmek istediğinize emin misiniz?`)) return;
+
+    try {
+        const res = await fetch(`/api/category/${id}`, {
+            method: 'DELETE'
+        });
+
+        const txt = await res.text();
+        if (res.ok) {
+            showAlert('success', 'Kategori başarıyla silindi.');
+            loadCategories();
+        } else {
+            const json = JSON.parse(txt);
+            showAlert('danger', json.message || 'Kategori silinemedi.');
+        }
+    } catch (error) {
+        showAlert('danger', 'Bir hata oluştu.');
+    }
+}
+
+function showAlert(type, message) {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    setTimeout(() => container.innerHTML = '', 5000);
+}
+</script>

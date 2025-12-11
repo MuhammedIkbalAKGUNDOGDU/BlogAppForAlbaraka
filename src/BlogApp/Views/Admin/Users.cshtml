@@ -1,0 +1,145 @@
+@{
+    ViewData["Title"] = "Kullanıcı Yönetimi";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5>Tüm Kullanıcılar</h5>
+    </div>
+    <div class="card-body">
+        <div id="alertContainer"></div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ad Soyad</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>Yazı Sayısı</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="8" class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsers();
+});
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/admin/users');
+        if (res.ok) {
+            const users = await res.json();
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Kullanıcı bulunamadı.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => {
+                const statusBadge = getStatusBadge(user.status);
+                const statusText = getStatusText(user.status);
+                
+                return `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.firstName} ${user.lastName}</td>
+                        <td>${user.email}</td>
+                        <td><span class="badge bg-${user.role === 'admin' ? 'danger' : 'secondary'}">${user.role}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${user.postCount}</td>
+                        <td>${new Date(user.createdAt).toLocaleDateString('tr-TR')}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Durum Değiştir
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="updateUserStatus(${user.id}, 0)">Aktif</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="updateUserStatus(${user.id}, 1)">Askıya Al</a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="updateUserStatus(${user.id}, 2)">Yasakla</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Kullanıcılar yüklenemedi.</td></tr>';
+        }
+    } catch (error) {
+        document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Bir hata oluştu.</td></tr>';
+    }
+}
+
+function getStatusBadge(status) {
+    switch(status) {
+        case 0: return '<span class="badge bg-success">Aktif</span>';
+        case 1: return '<span class="badge bg-warning">Askıya Alındı</span>';
+        case 2: return '<span class="badge bg-danger">Yasaklandı</span>';
+        default: return '<span class="badge bg-secondary">Bilinmeyen</span>';
+    }
+}
+
+function getStatusText(status) {
+    switch(status) {
+        case 0: return 'Aktif';
+        case 1: return 'Askıya Alındı';
+        case 2: return 'Yasaklandı';
+        default: return 'Bilinmeyen';
+    }
+}
+
+async function updateUserStatus(userId, status) {
+    const statusText = getStatusText(status);
+    if (!confirm(`Kullanıcının durumunu "${statusText}" olarak değiştirmek istediğinize emin misiniz?`)) return;
+
+    try {
+        const res = await fetch('/api/admin/update-user-status', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, status })
+        });
+
+        const txt = await res.text();
+        if (res.ok) {
+            showAlert('success', 'Kullanıcı durumu güncellendi.');
+            loadUsers();
+        } else {
+            const json = JSON.parse(txt);
+            showAlert('danger', json.message || 'Kullanıcı durumu güncellenemedi.');
+        }
+    } catch (error) {
+        showAlert('danger', 'Bir hata oluştu.');
+    }
+}
+
+function showAlert(type, message) {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    setTimeout(() => container.innerHTML = '', 5000);
+}
+</script>

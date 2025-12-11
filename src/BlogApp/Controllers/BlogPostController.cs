@@ -80,4 +80,45 @@ namespace BlogApp.Controllers
             return View(posts);
         }
     }
+
+    [Route("api/blogpost")]
+    [ApiController]
+    public class BlogPostApiController : ControllerBase
+    {
+        private readonly AppDbContext _context;
+
+        public BlogPostApiController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/blogpost/published
+        [HttpGet("published")]
+        public async Task<IActionResult> GetPublishedPosts()
+        {
+            var posts = await _context.BlogPosts
+                .Include(p => p.User)
+                .Include(p => p.Category)
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
+                .Where(p => p.IsDraft == false)
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Title,
+                    p.Content,
+                    p.CoverImage,
+                    p.CreatedAt,
+                    p.ViewCount,
+                    User = new { p.User!.FirstName, p.User.LastName },
+                    Category = new { p.Category!.Name },
+                    CommentCount = p.Comments != null ? p.Comments.Count : 0,
+                    LikeCount = p.Likes != null ? p.Likes.Count : 0
+                })
+                .ToListAsync();
+
+            return Ok(posts);
+        }
+    }
 }

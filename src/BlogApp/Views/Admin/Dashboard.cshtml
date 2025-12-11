@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Kullanıcı</h5>
+                <h2 id="totalUsers">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Aktif Kullanıcı</h5>
+                <h2 id="activeUsers">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Draft Yazılar</h5>
+                <h2 id="draftPosts">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Yayında Yazılar</h5>
+                <h2 id="publishedPosts">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Askıya Alınan</h5>
+                <h2 id="suspendedUsers">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card text-white bg-dark">
+            <div class="card-body">
+                <h5 class="card-title">Yasaklanan</h5>
+                <h2 id="bannedUsers">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const res = await fetch('/api/admin/stats');
+        if (res.ok) {
+            const stats = await res.json();
+            document.getElementById('totalUsers').textContent = stats.totalUsers;
+            document.getElementById('activeUsers').textContent = stats.activeUsers;
+            document.getElementById('draftPosts').textContent = stats.draftPosts;
+            document.getElementById('publishedPosts').textContent = stats.publishedPosts;
+            document.getElementById('suspendedUsers').textContent = stats.suspendedUsers;
+            document.getElementById('bannedUsers').textContent = stats.bannedUsers;
+        }
+    } catch (error) {
+        console.error('İstatistikler yüklenemedi:', error);
+    }
+});
+</script>

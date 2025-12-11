@@ -1,0 +1,154 @@
+@{
+    ViewData["Title"] = "Admin Kayıt";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BlogApp</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-5 col-lg-4">
+                <div class="card shadow">
+                    <div class="card-body p-5">
+                        <h2 class="card-title text-center mb-4">Admin Kayıt</h2>
+                        
+                        <div id="alertContainer"></div>
+
+                        <form id="adminRegisterForm" novalidate>
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">Ad</label>
+                                <input type="text" class="form-control" id="firstName" required />
+                                <div class="invalid-feedback">
+                                    Lütfen adınızı giriniz.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Soyad</label>
+                                <input type="text" class="form-control" id="lastName" required />
+                                <div class="invalid-feedback">
+                                    Lütfen soyadınızı giriniz.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" required />
+                                <div class="invalid-feedback">
+                                    Lütfen geçerli bir email adresi giriniz.
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="password" class="form-label">Şifre</label>
+                                <input type="password" class="form-control" id="password" required minlength="6" />
+                                <div class="invalid-feedback">
+                                    Şifre en az 6 karakter olmalıdır.
+                                </div>
+                                <div class="form-text">Şifre en az 6 karakter olmalıdır.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 mb-3">
+                                <span id="registerSpinner" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                                Admin Oluştur
+                            </button>
+                        </form>
+
+                        <div class="text-center">
+                            <p class="mb-0">Zaten admin hesabınız var mı? <a href="/Admin/Login">Giriş Yap</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById("adminRegisterForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            
+            const form = this;
+            const alertContainer = document.getElementById("alertContainer");
+            const registerSpinner = document.getElementById("registerSpinner");
+            const submitButton = form.querySelector('button[type="submit"]');
+            
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            alertContainer.innerHTML = '';
+            registerSpinner.classList.remove('d-none');
+            submitButton.disabled = true;
+
+            const payload = {
+                firstName: document.getElementById("firstName").value.trim(),
+                lastName: document.getElementById("lastName").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                password: document.getElementById("password").value
+            };
+
+            try {
+                const res = await fetch("/api/admin/create-admin", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const txt = await res.text();
+
+                if (res.ok) {
+                    try {
+                        const data = JSON.parse(txt);
+                        alertContainer.innerHTML = `
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <strong>Başarılı!</strong> ${data.message || 'Admin kullanıcısı oluşturuldu. Giriş sayfasına yönlendiriliyorsunuz...'}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `;
+                        
+                        form.reset();
+                        form.classList.remove('was-validated');
+                        
+                        setTimeout(() => {
+                            window.location.href = '/Admin/Login';
+                        }, 2000);
+                    } catch (e) {
+                        showError(alertContainer, 'Admin oluşturuldu ancak yanıt işlenemedi.');
+                    }
+                } else {
+                    try {
+                        const json = JSON.parse(txt);
+                        showError(alertContainer, json.message || 'Admin oluşturulamadı.');
+                    } catch {
+                        showError(alertContainer, txt || 'Admin oluşturulamadı. Lütfen tekrar deneyin.');
+                    }
+                }
+            } catch (error) {
+                showError(alertContainer, 'Bir hata oluştu. Lütfen tekrar deneyin.');
+            } finally {
+                registerSpinner.classList.add('d-none');
+                submitButton.disabled = false;
+            }
+        });
+
+        function showError(container, message) {
+            container.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Hata!</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

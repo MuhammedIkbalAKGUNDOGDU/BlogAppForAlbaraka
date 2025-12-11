@@ -1,5 +1,12 @@
 namespace BlogApp.Models;
 
+public enum UserStatus
+{
+    Active = 0,
+    Suspended = 1,
+    Banned = 2
+}
+
 public class User
 {
     public int Id { get; set; } // Kullanıcı benzersiz ID
@@ -14,7 +21,9 @@ public class User
 
     public string Role { get; set; } = "user"; // "user" veya "admin"
 
-    public bool IsActive { get; set; } = true; // Admin kullanıcıyı dondurursa false olur
+    public bool IsActive { get; set; } = true; // Admin kullanıcıyı dondurursa false olur (deprecated - Status kullanılacak)
+    
+    public UserStatus Status { get; set; } = UserStatus.Active; // Kullanıcı durumu: Active, Suspended, Banned
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Hesap oluşturma tarihi
 
