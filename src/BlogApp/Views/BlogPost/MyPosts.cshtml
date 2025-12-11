@@ -1,0 +1,96 @@
+@model List<BlogApp.Models.BlogPost>
+
+@{
+    ViewData["Title"] = "Gönderilerim";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gönderilerim</h2>
+        <a class="btn btn-success" href="/BlogPost/Create">
+            <i class="bi bi-plus-circle"></i> Yeni Yazı Ekle
+        </a>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            Henüz hiç yazınız bulunmamaktadır. <a href="/BlogPost/Create">İlk yazınızı oluşturun</a>.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Başlık</th>
+                        <th>Kategori</th>
+                        <th>Oluşturulma Tarihi</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var post in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@post.Title</strong>
+                            </td>
+                            <td>
+                                @if (post.Category != null)
+                                {
+                                    <span class="badge bg-secondary">@post.Category.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>@post.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                @if (post.IsDraft)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-clock-history"></i> Admin Onayı Bekliyor
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Yayında
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<script>
+// Sayfa yüklendiğinde userId kontrolü yap
+document.addEventListener('DOMContentLoaded', function() {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const user = JSON.parse(userStr);
+        const userId = user.id || user.Id;
+        const currentUrl = new URL(window.location.href);
+        const urlUserId = currentUrl.searchParams.get('userId');
+
+        // Eğer URL'de userId yoksa veya farklıysa, doğru URL'ye yönlendir
+        if (!urlUserId || parseInt(urlUserId) !== userId) {
+            window.location.href = `/BlogPost/MyPosts?userId=${userId}`;
+        }
+    } catch (e) {
+        console.error('Kullanıcı bilgisi okunamadı:', e);
+    }
+});
+</script>

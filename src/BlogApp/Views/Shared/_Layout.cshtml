@@ -63,10 +63,17 @@
                             <a class="nav-link text-dark dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 ${user.firstName || user.FirstName || ''} ${user.lastName || user.LastName || ''}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="#" onclick="logout()">Çıkış Yap</a></li>
-                                <li><a class="dropdown-item" href="/Profile/Index">Profilim</a></li>
-                            </ul>
+                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="/Profile/Index">Profilim</a></li>
+
+            <li><a class="dropdown-item" href="/BlogPost/Create">Blog Yaz</a></li>
+
+            <li><a class="dropdown-item" href="/BlogPost/MyPosts">Yazılarım</a></li>
+
+            <li><hr class="dropdown-divider"></li>
+
+            <li><a class="dropdown-item text-danger" href="#" onclick="logout()">Çıkış Yap</a></li>
+        </ul>
                            
 
                         </li>
