@@ -154,10 +154,14 @@ function renderPost(post) {
                         <h5>${post.user.firstName} ${post.user.lastName}</h5>
                         <p class="text-muted">${post.user.email}</p>
                         ${currentUserId && currentUserId !== post.user.id ? `
-                            <button id="followBtn" class="btn btn-primary w-100" onclick="toggleFollow(${post.user.id})">
-                                <span id="followText">Takip Et</span>
+                            <button id="followBtn" class="btn btn-primary w-100 mt-3" onclick="toggleFollow(${post.user.id})">
+                                <i class="bi bi-person-plus"></i> <span id="followText">Takip Et</span>
                             </button>
-                        ` : ''}
+                        ` : currentUserId === post.user.id ? '' : `
+                            <button class="btn btn-primary w-100 mt-3" onclick="window.location.href='/AuthView/Login'">
+                                <i class="bi bi-person-plus"></i> Takip Et
+                            </button>
+                        `}
                     </div>
                 </div>
             </div>
@@ -234,6 +238,13 @@ async function toggleFollow(userId) {
         return;
     }
 
+    const followBtn = document.getElementById('followBtn');
+    const followText = document.getElementById('followText');
+    
+    // Butonu devre dışı bırak
+    followBtn.disabled = true;
+    followBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Yükleniyor...';
+
     try {
         const res = await fetch(`/api/user/${userId}/follow`, {
             method: 'POST',
@@ -243,21 +254,33 @@ async function toggleFollow(userId) {
 
         if (res.ok) {
             const data = await res.json();
-            const followBtn = document.getElementById('followBtn');
-            const followText = document.getElementById('followText');
             
             if (data.isFollowing) {
                 followBtn.classList.remove('btn-primary');
                 followBtn.classList.add('btn-secondary');
-                followText.textContent = 'Takipten Çık';
+                followBtn.innerHTML = '<i class="bi bi-person-check"></i> <span id="followText">Takipten Çık</span>';
             } else {
                 followBtn.classList.remove('btn-secondary');
                 followBtn.classList.add('btn-primary');
-                followText.textContent = 'Takip Et';
+                followBtn.innerHTML = '<i class="bi bi-person-plus"></i> <span id="followText">Takip Et</span>';
             }
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                alert(json.message || 'İşlem başarısız.');
+            } catch {
+                alert('Bir hata oluştu.');
+            }
+            // Hata durumunda butonu eski haline getir
+            followBtn.innerHTML = '<i class="bi bi-person-plus"></i> <span id="followText">Takip Et</span>';
         }
     } catch (error) {
         console.error('Follow hatası:', error);
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+        followBtn.innerHTML = '<i class="bi bi-person-plus"></i> <span id="followText">Takip Et</span>';
+    } finally {
+        followBtn.disabled = false;
     }
 }
 
@@ -270,11 +293,10 @@ async function checkFollowStatus(userId) {
             const data = await res.json();
             if (data.isFollowing) {
                 const followBtn = document.getElementById('followBtn');
-                const followText = document.getElementById('followText');
                 
                 followBtn.classList.remove('btn-primary');
                 followBtn.classList.add('btn-secondary');
-                followText.textContent = 'Takipten Çık';
+                followBtn.innerHTML = '<i class="bi bi-person-check"></i> <span id="followText">Takipten Çık</span>';
             }
         }
     } catch (error) {

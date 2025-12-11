@@ -5,6 +5,7 @@ using System.Security.Claims;
 using BCrypt.Net;
 using BlogApp.Data;
 using BlogApp.DTOs;
+using BlogApp.Models;
 
 namespace BlogApp.Controllers
 {
@@ -97,5 +98,58 @@ public async Task<IActionResult> GetProfile()
     return Ok(user);
 }
 
+        // GET: api/profile/followers
+        [HttpGet("followers")]
+        public async Task<IActionResult> GetFollowers([FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı ID gereklidir." });
+            }
+
+            var followers = await _context.Set<UserFollower>()
+                .Include(uf => uf.Follower)
+                .Where(uf => uf.FollowingId == userId)
+                .Select(uf => new
+                {
+                    uf.Follower!.Id,
+                    uf.Follower.FirstName,
+                    uf.Follower.LastName,
+                    uf.Follower.Email,
+                    uf.Follower.ProfileImage,
+                    uf.CreatedAt
+                })
+                .OrderByDescending(uf => uf.CreatedAt)
+                .ToListAsync();
+
+            return Ok(followers);
+        }
+
+        // GET: api/profile/following
+        [HttpGet("following")]
+        public async Task<IActionResult> GetFollowing([FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı ID gereklidir." });
+            }
+
+            var following = await _context.Set<UserFollower>()
+                .Include(uf => uf.Following)
+                .Where(uf => uf.FollowerId == userId)
+                .Select(uf => new
+                {
+                    uf.Following!.Id,
+                    uf.Following.FirstName,
+                    uf.Following.LastName,
+                    uf.Following.Email,
+                    uf.Following.ProfileImage,
+                    uf.CreatedAt
+                })
+                .OrderByDescending(uf => uf.CreatedAt)
+                .ToListAsync();
+
+            return Ok(following);
+        }
     }
 }

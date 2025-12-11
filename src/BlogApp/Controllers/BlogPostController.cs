@@ -71,6 +71,8 @@ namespace BlogApp.Controllers
         {
             var posts = _context.BlogPosts
                 .Include(p => p.Category)
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
                 .Where(x => x.UserId == userId)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToList();

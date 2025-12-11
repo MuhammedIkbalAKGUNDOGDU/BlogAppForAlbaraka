@@ -79,10 +79,57 @@
     </div>
 </div>
 
+<!-- Takip Ettiklerim ve Takip Edenler -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10 col-lg-8">
+        <div class="row">
+            <!-- Takip Ettiklerim -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-people"></i> Takip Ettiklerim</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="followingList">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Takip Edenler -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-person-heart"></i> Takip Edenler</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="followersList">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
 // Sayfa açıldığında profil bilgilerini getir
-document.addEventListener("DOMContentLoaded", loadProfile);
+document.addEventListener("DOMContentLoaded", function() {
+    loadProfile();
+    loadFollowing();
+    loadFollowers();
+});
 
 // -------------------------
 // PROFİL BİLGİLERİNİ GETİR
@@ -200,4 +247,228 @@ document.getElementById("passwordForm").addEventListener("submit", async e => {
         </div>
     `;
 });
+
+// -------------------------
+// TAKİP ETTİKLERİM
+// -------------------------
+async function loadFollowing() {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return;
+
+    try {
+        const user = JSON.parse(userStr);
+        const userId = user.id || user.Id;
+
+        const res = await fetch(`/api/profile/following?userId=${userId}`, {
+            method: "GET"
+        });
+
+        if (!res.ok) {
+            document.getElementById("followingList").innerHTML = '<p class="text-muted">Yüklenemedi.</p>';
+            return;
+        }
+
+        const following = await res.json();
+        const container = document.getElementById("followingList");
+
+        if (following.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">Henüz kimseyi takip etmiyorsunuz.</p>';
+            return;
+        }
+
+        const currentUserStr = localStorage.getItem("user");
+        let currentUserId = null;
+        if (currentUserStr) {
+            try {
+                const currentUser = JSON.parse(currentUserStr);
+                currentUserId = currentUser.id || currentUser.Id;
+            } catch (e) {}
+        }
+
+        container.innerHTML = following.map(user => `
+            <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                ${user.profileImage ? 
+                    `<img src="${user.profileImage}" class="rounded-circle me-3" width="50" height="50" alt="${user.firstName}">` :
+                    `<div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">${user.firstName[0]}${user.lastName[0]}</div>`
+                }
+                <div class="flex-grow-1">
+                    <strong>${user.firstName} ${user.lastName}</strong>
+                    <br>
+                    <small class="text-muted">${user.email}</small>
+                </div>
+                ${currentUserId ? `
+                    <button class="btn btn-sm btn-secondary" onclick="unfollowUser(${user.id}, 'following')">
+                        <i class="bi bi-person-dash"></i> Takipten Çık
+                    </button>
+                ` : ''}
+            </div>
+        `).join('');
+    } catch (error) {
+        document.getElementById("followingList").innerHTML = '<p class="text-danger">Bir hata oluştu.</p>';
+    }
+}
+
+// -------------------------
+// TAKİP EDENLER
+// -------------------------
+async function loadFollowers() {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return;
+
+    try {
+        const user = JSON.parse(userStr);
+        const userId = user.id || user.Id;
+
+        const res = await fetch(`/api/profile/followers?userId=${userId}`, {
+            method: "GET"
+        });
+
+        if (!res.ok) {
+            document.getElementById("followersList").innerHTML = '<p class="text-muted">Yüklenemedi.</p>';
+            return;
+        }
+
+        const followers = await res.json();
+        const container = document.getElementById("followersList");
+
+        if (followers.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">Henüz sizi takip eden yok.</p>';
+            return;
+        }
+
+        const currentUserStr = localStorage.getItem("user");
+        let currentUserId = null;
+        if (currentUserStr) {
+            try {
+                const currentUser = JSON.parse(currentUserStr);
+                currentUserId = currentUser.id || currentUser.Id;
+            } catch (e) {}
+        }
+
+        // Her takip eden için takip durumunu kontrol et
+        const followersWithStatus = await Promise.all(followers.map(async (user) => {
+            if (!currentUserId) return { ...user, isFollowing: false };
+            
+            try {
+                const statusRes = await fetch(`/api/user/${user.id}/is-following?followerId=${currentUserId}`);
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    return { ...user, isFollowing: statusData.isFollowing };
+                }
+            } catch (e) {}
+            return { ...user, isFollowing: false };
+        }));
+
+        container.innerHTML = followersWithStatus.map(user => `
+            <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                ${user.profileImage ? 
+                    `<img src="${user.profileImage}" class="rounded-circle me-3" width="50" height="50" alt="${user.firstName}">` :
+                    `<div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">${user.firstName[0]}${user.lastName[0]}</div>`
+                }
+                <div class="flex-grow-1">
+                    <strong>${user.firstName} ${user.lastName}</strong>
+                    <br>
+                    <small class="text-muted">${user.email}</small>
+                </div>
+                ${currentUserId ? `
+                    ${user.isFollowing ? `
+                        <button class="btn btn-sm btn-secondary" onclick="unfollowUser(${user.id}, 'followers')">
+                            <i class="bi bi-person-dash"></i> Takipten Çık
+                        </button>
+                    ` : `
+                        <button class="btn btn-sm btn-primary" onclick="followUser(${user.id}, 'followers')">
+                            <i class="bi bi-person-plus"></i> Takip Et
+                        </button>
+                    `}
+                ` : ''}
+            </div>
+        `).join('');
+    } catch (error) {
+        document.getElementById("followersList").innerHTML = '<p class="text-danger">Bir hata oluştu.</p>';
+    }
+}
+
+// -------------------------
+// TAKİPTEN ÇIK
+// -------------------------
+async function unfollowUser(userId, listType) {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const user = JSON.parse(userStr);
+        const currentUserId = user.id || user.Id;
+
+        const res = await fetch(`/api/user/${userId}/follow`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentUserId)
+        });
+
+        if (res.ok) {
+            // Listeyi yeniden yükle
+            if (listType === 'following') {
+                loadFollowing();
+            } else {
+                loadFollowers();
+            }
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                alert(json.message || 'İşlem başarısız.');
+            } catch {
+                alert('Bir hata oluştu.');
+            }
+        }
+    } catch (error) {
+        console.error('Unfollow hatası:', error);
+        alert('Bir hata oluştu.');
+    }
+}
+
+// -------------------------
+// TAKİP ET
+// -------------------------
+async function followUser(userId, listType) {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const user = JSON.parse(userStr);
+        const currentUserId = user.id || user.Id;
+
+        const res = await fetch(`/api/user/${userId}/follow`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentUserId)
+        });
+
+        if (res.ok) {
+            // Listeyi yeniden yükle
+            if (listType === 'following') {
+                loadFollowing();
+            } else {
+                loadFollowers();
+            }
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                alert(json.message || 'İşlem başarısız.');
+            } catch {
+                alert('Bir hata oluştu.');
+            }
+        }
+    } catch (error) {
+        console.error('Follow hatası:', error);
+        alert('Bir hata oluştu.');
+    }
+}
 </script>
