@@ -452,10 +452,13 @@ namespace BlogApp.Controllers
             post.Content = dto.Content.Trim();
             post.CoverImage = string.IsNullOrWhiteSpace(dto.CoverImage) ? null : dto.CoverImage.Trim();
             post.UpdatedAt = DateTime.UtcNow;
+            
+            // Yazı düzenlendiğinde tekrar admin onayına gönder (draft durumuna düşür)
+            post.IsDraft = true;
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Yazı başarıyla güncellendi.", postId = post.Id });
+            return Ok(new { message = "Yazı başarıyla güncellendi. Admin onayından sonra tekrar yayınlanacaktır.", postId = post.Id });
         }
 
         // DELETE: api/blogpost/{id}
