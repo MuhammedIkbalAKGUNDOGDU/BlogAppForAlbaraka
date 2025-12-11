@@ -171,14 +171,40 @@ namespace BlogApp.Controllers
 
         // GET: api/admin/users
         [HttpGet("users")]
-        public async Task<IActionResult> GetUsers()
+        public async Task<IActionResult> GetUsers([FromQuery] string? search = null, [FromQuery] string? role = null, [FromQuery] int? status = null)
         {
             if (!IsAdminLoggedIn())
             {
                 return Unauthorized(new { message = "Admin yetkisi gereklidir." });
             }
 
-            var users = await _context.Users
+            var query = _context.Users.AsQueryable();
+
+            // İsim veya email'e göre arama
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim().ToLower();
+                query = query.Where(u => 
+                    u.FirstName.ToLower().Contains(searchTerm) ||
+                    u.LastName.ToLower().Contains(searchTerm) ||
+                    u.Email.ToLower().Contains(searchTerm) ||
+                    (u.FirstName + " " + u.LastName).ToLower().Contains(searchTerm)
+                );
+            }
+
+            // Role göre filtreleme
+            if (!string.IsNullOrWhiteSpace(role) && (role == "admin" || role == "user"))
+            {
+                query = query.Where(u => u.Role == role);
+            }
+
+            // Status göre filtreleme
+            if (status.HasValue && Enum.IsDefined(typeof(UserStatus), status.Value))
+            {
+                query = query.Where(u => u.Status == (UserStatus)status.Value);
+            }
+
+            var users = await query
                 .Select(u => new
                 {
                     u.Id,

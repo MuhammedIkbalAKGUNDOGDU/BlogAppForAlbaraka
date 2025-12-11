@@ -13,7 +13,7 @@
                     <label for="searchInput" class="form-label">
                         <i class="bi bi-search"></i> Arama
                     </label>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Başlık veya içerikte ara..." />
+                    <input type="text" class="form-control" id="searchInput" placeholder="Başlık, içerik veya yazar adında ara..." />
                 </div>
                 <div class="col-md-4">
                     <label for="categoryFilter" class="form-label">
@@ -121,11 +121,13 @@ async function loadPosts() {
                 // Arama terimini vurgula (highlight)
                 let title = escapeHtml(post.title);
                 let content = escapeHtml(post.content.substring(0, 200));
+                let authorName = escapeHtml(`${post.user.firstName} ${post.user.lastName}`);
                 
                 if (currentSearch) {
                     const searchRegex = new RegExp(`(${escapeRegex(currentSearch)})`, 'gi');
                     title = title.replace(searchRegex, '<mark>$1</mark>');
                     content = content.replace(searchRegex, '<mark>$1</mark>');
+                    authorName = authorName.replace(searchRegex, '<mark>$1</mark>');
                 }
 
                 return `
@@ -140,7 +142,7 @@ async function loadPosts() {
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <small class="text-muted">
-                                        <i class="bi bi-person"></i> ${post.user.firstName} ${post.user.lastName} | 
+                                        <i class="bi bi-person"></i> ${authorName} | 
                                         <i class="bi bi-calendar"></i> ${new Date(post.createdAt).toLocaleDateString('tr-TR')} | 
                                         <i class="bi bi-eye"></i> ${post.viewCount} görüntüleme
                                     </small>

@@ -123,13 +123,16 @@ namespace BlogApp.Controllers
                 query = query.Where(p => p.CategoryId == categoryId.Value);
             }
 
-            // Arama filtresi (başlık veya içerik)
+            // Arama filtresi (başlık, içerik veya yazar adı)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var searchTerm = search.Trim().ToLower();
                 query = query.Where(p => 
                     p.Title.ToLower().Contains(searchTerm) || 
-                    p.Content.ToLower().Contains(searchTerm)
+                    p.Content.ToLower().Contains(searchTerm) ||
+                    (p.User != null && (p.User.FirstName.ToLower().Contains(searchTerm) || 
+                                        p.User.LastName.ToLower().Contains(searchTerm) ||
+                                        (p.User.FirstName + " " + p.User.LastName).ToLower().Contains(searchTerm)))
                 );
             }
 
@@ -169,8 +172,11 @@ namespace BlogApp.Controllers
                         p.Category,
                         p.CommentCount,
                         p.LikeCount,
-                        // Relevance score: başlıkta geçiyorsa 2, içerikte geçiyorsa 1
-                        RelevanceScore = (p.Title.ToLower().Contains(searchTerm) ? 2 : 0) +
+                        // Relevance score: başlıkta geçiyorsa 3, yazar adında geçiyorsa 2, içerikte geçiyorsa 1
+                        RelevanceScore = (p.Title.ToLower().Contains(searchTerm) ? 3 : 0) +
+                                        (p.User != null && (p.User.FirstName.ToLower().Contains(searchTerm) || 
+                                                           p.User.LastName.ToLower().Contains(searchTerm) ||
+                                                           (p.User.FirstName + " " + p.User.LastName).ToLower().Contains(searchTerm)) ? 2 : 0) +
                                         (p.Content.ToLower().Contains(searchTerm) ? 1 : 0)
                     })
                     .OrderByDescending(p => p.RelevanceScore)
