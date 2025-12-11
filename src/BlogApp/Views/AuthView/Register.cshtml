@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h2>Register</h2>
+
+<form id="registerForm">
+    <label>First Name</label><br />
+    <input type="text" id="firstName" name="FirstName" required /><br /><br />
+
+    <label>Last Name</label><br />
+    <input type="text" id="lastName" name="LastName" required /><br /><br />
+
+    <label>Email</label><br />
+    <input type="email" id="email" name="Email" required /><br /><br />
+
+    <label>Password</label><br />
+    <input type="password" id="password" name="Password" required /><br /><br />
+
+    <button type="submit">Register</button>
+</form>
+
+<p id="result"></p>
+
+<script>
+document.getElementById("registerForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const payload = {
+        firstName: document.getElementById("firstName").value,
+        lastName: document.getElementById("lastName").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+    };
+
+    const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const txt = await res.text();
+    const out = document.getElementById("result");
+
+    if (res.ok) {
+        out.textContent = "Kayıt başarılı.";
+    } else {
+        // API JSON döndürüyorsa parse et, değilse text kullan
+        try {
+            const json = JSON.parse(txt);
+            out.textContent = json.message || JSON.stringify(json);
+        } catch {
+            out.textContent = txt || "Kayıt başarısız.";
+        }
+    }
+});
+</script>

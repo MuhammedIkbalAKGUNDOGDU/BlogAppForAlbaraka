@@ -1,0 +1,43 @@
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>Login</h2>
+
+<form id="loginForm">
+    <label>Email:</label><br />
+    <input type="email" id="email" required /><br /><br />
+
+    <label>Password:</label><br />
+    <input type="password" id="password" required /><br /><br />
+
+    <button type="submit">Login</button>
+</form>
+
+<p id="msg"></p>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const payload = {
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+    };
+
+    const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const msg = document.getElementById("msg");
+
+    if (res.ok) {
+        msg.textContent = "Login success!";
+    } else {
+        const t = await res.text();
+        msg.textContent = t;
+    }
+});
+</script>
