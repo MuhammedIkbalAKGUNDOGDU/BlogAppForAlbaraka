@@ -189,7 +189,9 @@ namespace BlogApp.Controllers
                         PopularityScore = (p.LikeCount * LIKE_WEIGHT) + (p.CommentCount * COMMENT_WEIGHT) + (p.ViewCount * VIEW_WEIGHT)
                     })
                     .OrderByDescending(p => p.RelevanceScore)
-                    .ThenByDescending(p => sortBy == "popularity" ? p.PopularityScore : p.CreatedAt)
+                    .ThenByDescending(p => sortBy == "popularity" 
+                        ? p.PopularityScore 
+                        : (double)p.CreatedAt.Ticks) // Ticks'i double'a çevirerek tip uyumluluğu sağla
                     .Select(p => new
                     {
                         p.Id,
