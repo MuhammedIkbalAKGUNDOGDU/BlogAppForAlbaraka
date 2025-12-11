@@ -259,3 +259,4 @@
 /Users/ikbal/Desktop/BlogApp/src/BlogApp/bin/Debug/net10.0/MailKit.dll
 /Users/ikbal/Desktop/BlogApp/src/BlogApp/bin/Debug/net10.0/MimeKit.dll
 /Users/ikbal/Desktop/BlogApp/src/BlogApp/bin/Debug/net10.0/RabbitMQ.Client.dll
+/Users/ikbal/Desktop/BlogApp/src/BlogApp/obj/Debug/net10.0/BlogApp.sourcelink.json

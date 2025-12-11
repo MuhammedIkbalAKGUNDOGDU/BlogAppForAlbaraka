@@ -108,15 +108,34 @@ namespace BlogApp.Controllers
 
         // GET: api/blogpost/published
         [HttpGet("published")]
-        public async Task<IActionResult> GetPublishedPosts()
+        public async Task<IActionResult> GetPublishedPosts([FromQuery] string? search = null, [FromQuery] int? categoryId = null)
         {
-            var posts = await _context.BlogPosts
+            var query = _context.BlogPosts
                 .Include(p => p.User)
                 .Include(p => p.Category)
                 .Include(p => p.Comments)
                 .Include(p => p.Likes)
-                .Where(p => p.IsDraft == false)
-                .OrderByDescending(p => p.CreatedAt)
+                .Where(p => p.IsDraft == false);
+
+            // Kategori filtresi
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            // Arama filtresi (başlık veya içerik)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim().ToLower();
+                query = query.Where(p => 
+                    p.Title.ToLower().Contains(searchTerm) || 
+                    p.Content.ToLower().Contains(searchTerm)
+                );
+            }
+
+            // Arama varsa önce başlıkta geçenleri, sonra içerikte geçenleri sırala
+            // Arama yoksa tarihe göre sırala
+            var posts = await query
                 .Select(p => new
                 {
                     p.Id,
@@ -125,12 +144,33 @@ namespace BlogApp.Controllers
                     p.CoverImage,
                     p.CreatedAt,
                     p.ViewCount,
+                    p.CategoryId,
                     User = new { p.User!.Id, p.User.FirstName, p.User.LastName, p.User.ProfileImage },
-                    Category = new { p.Category!.Name },
+                    Category = new { p.Category!.Id, p.Category.Name },
                     CommentCount = p.Comments != null ? p.Comments.Count : 0,
-                    LikeCount = p.Likes != null ? p.Likes.Count : 0
+                    LikeCount = p.Likes != null ? p.Likes.Count : 0,
+                    // Arama için relevance score (başlıkta geçiyorsa 2, içerikte geçiyorsa 1)
+                    RelevanceScore = !string.IsNullOrWhiteSpace(search) 
+                        ? (p.Title.ToLower().Contains(search.Trim().ToLower()) ? 2 : 0) +
+                          (p.Content.ToLower().Contains(search.Trim().ToLower()) ? 1 : 0)
+                        : 0
                 })
                 .ToListAsync();
+
+            // Arama varsa relevance score'a göre sırala, yoksa tarihe göre
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                posts = posts
+                    .OrderByDescending(p => p.RelevanceScore)
+                    .ThenByDescending(p => p.CreatedAt)
+                    .ToList();
+            }
+            else
+            {
+                posts = posts
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+            }
 
             return Ok(posts);
         }
@@ -378,6 +418,51 @@ namespace BlogApp.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Yazı başarıyla güncellendi.", postId = post.Id });
+        }
+
+        // DELETE: api/blogpost/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePost(int id, [FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı bilgisi bulunamadı." });
+            }
+
+            // Yazıyı bul
+            var post = await _context.BlogPosts
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            // Sadece yazının sahibi silebilir
+            if (post.UserId != userId)
+            {
+                return Unauthorized(new { message = "Bu yazıyı silme yetkiniz yok." });
+            }
+
+            // İlişkili yorumları sil
+            if (post.Comments != null && post.Comments.Any())
+            {
+                _context.Comments.RemoveRange(post.Comments);
+            }
+
+            // İlişkili beğenileri sil
+            if (post.Likes != null && post.Likes.Any())
+            {
+                _context.PostLikes.RemoveRange(post.Likes);
+            }
+
+            // Yazıyı sil
+            _context.BlogPosts.Remove(post);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Yazı başarıyla silindi." });
         }
     }
 }

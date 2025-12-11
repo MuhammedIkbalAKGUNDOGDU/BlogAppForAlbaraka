@@ -5,6 +5,33 @@
 <div class="container mt-4">
     <h1 class="mb-4">Blog Yazıları</h1>
 
+    <!-- Arama ve Filtreleme -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="searchInput" class="form-label">
+                        <i class="bi bi-search"></i> Arama
+                    </label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Başlık veya içerikte ara..." />
+                </div>
+                <div class="col-md-4">
+                    <label for="categoryFilter" class="form-label">
+                        <i class="bi bi-funnel"></i> Kategori Filtresi
+                    </label>
+                    <select class="form-select" id="categoryFilter">
+                        <option value="">Tüm Kategoriler</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" id="clearFilters" onclick="clearFilters()">
+                        <i class="bi bi-x-circle"></i> Temizle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="postsContainer">
         <div class="text-center">
             <div class="spinner-border" role="status">
