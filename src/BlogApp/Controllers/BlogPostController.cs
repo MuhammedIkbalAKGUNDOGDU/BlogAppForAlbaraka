@@ -133,8 +133,7 @@ namespace BlogApp.Controllers
                 );
             }
 
-            // Arama varsa önce başlıkta geçenleri, sonra içerikte geçenleri sırala
-            // Arama yoksa tarihe göre sırala
+            // Önce verileri çek
             var posts = await query
                 .Select(p => new
                 {
@@ -148,25 +147,53 @@ namespace BlogApp.Controllers
                     User = new { p.User!.Id, p.User.FirstName, p.User.LastName, p.User.ProfileImage },
                     Category = new { p.Category!.Id, p.Category.Name },
                     CommentCount = p.Comments != null ? p.Comments.Count : 0,
-                    LikeCount = p.Likes != null ? p.Likes.Count : 0,
-                    // Arama için relevance score (başlıkta geçiyorsa 2, içerikte geçiyorsa 1)
-                    RelevanceScore = !string.IsNullOrWhiteSpace(search) 
-                        ? (p.Title.ToLower().Contains(search.Trim().ToLower()) ? 2 : 0) +
-                          (p.Content.ToLower().Contains(search.Trim().ToLower()) ? 1 : 0)
-                        : 0
+                    LikeCount = p.Likes != null ? p.Likes.Count : 0
                 })
                 .ToListAsync();
 
-            // Arama varsa relevance score'a göre sırala, yoksa tarihe göre
+            // Arama varsa relevance score'a göre sırala (memory'de)
             if (!string.IsNullOrWhiteSpace(search))
             {
+                var searchTerm = search.Trim().ToLower();
                 posts = posts
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Title,
+                        p.Content,
+                        p.CoverImage,
+                        p.CreatedAt,
+                        p.ViewCount,
+                        p.CategoryId,
+                        p.User,
+                        p.Category,
+                        p.CommentCount,
+                        p.LikeCount,
+                        // Relevance score: başlıkta geçiyorsa 2, içerikte geçiyorsa 1
+                        RelevanceScore = (p.Title.ToLower().Contains(searchTerm) ? 2 : 0) +
+                                        (p.Content.ToLower().Contains(searchTerm) ? 1 : 0)
+                    })
                     .OrderByDescending(p => p.RelevanceScore)
                     .ThenByDescending(p => p.CreatedAt)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Title,
+                        p.Content,
+                        p.CoverImage,
+                        p.CreatedAt,
+                        p.ViewCount,
+                        p.CategoryId,
+                        p.User,
+                        p.Category,
+                        p.CommentCount,
+                        p.LikeCount
+                    })
                     .ToList();
             }
             else
             {
+                // Arama yoksa sadece tarihe göre sırala
                 posts = posts
                     .OrderByDescending(p => p.CreatedAt)
                     .ToList();
