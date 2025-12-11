@@ -1,0 +1,203 @@
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-body p-4">
+
+                <h2 class="mb-4 text-center">Profil Bilgilerim</h2>
+
+                <div id="alertContainer"></div>
+
+                <!-- PROFILE FORM -->
+                <form id="profileForm" novalidate>
+                    <div class="text-center mb-3">
+                       <img id="profilePreview"
+                            src="/images/default-avatar.png"
+                            onerror="this.src='/images/default-avatar.webp'"
+                            class="rounded-circle border"
+                            width="120" height="120">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ad</label>
+                        <input class="form-control" name="FirstName" required />
+                        <div class="invalid-feedback">Lütfen ad girin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Soyad</label>
+                        <input class="form-control" name="LastName" required />
+                        <div class="invalid-feedback">Lütfen soyad girin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input class="form-control" name="Email" type="email" required />
+                        <div class="invalid-feedback">Geçerli bir email girin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Profil Resmi URL</label>
+                        <input class="form-control" name="ProfileImage" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span id="profileSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                        Kaydet
+                    </button>
+                </form>
+
+                <hr class="my-4" />
+
+                <!-- PASSWORD FORM -->
+                <h4 class="mb-3">Şifre Değiştir</h4>
+
+                <form id="passwordForm" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Eski Şifre</label>
+                        <input type="password" class="form-control" name="OldPassword" required />
+                        <div class="invalid-feedback">Lütfen eski şifrenizi girin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Yeni Şifre</label>
+                        <input type="password" class="form-control" name="NewPassword" required />
+                        <div class="invalid-feedback">Lütfen yeni şifrenizi girin.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">
+                        <span id="passwordSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                        Şifreyi Güncelle
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// Sayfa açıldığında profil bilgilerini getir
+document.addEventListener("DOMContentLoaded", loadProfile);
+
+// -------------------------
+// PROFİL BİLGİLERİNİ GETİR
+// -------------------------
+async function loadProfile() {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "/AuthView/Login";
+        return;
+    }
+
+    const res = await fetch("/api/profile", {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    document.querySelector("input[name='FirstName']").value = data.firstName;
+    document.querySelector("input[name='LastName']").value = data.lastName;
+    document.querySelector("input[name='Email']").value = data.email;
+    document.querySelector("input[name='ProfileImage']").value = data.profileImage ?? "";
+
+    if (data.profileImage)
+        document.getElementById("profilePreview").src = data.profileImage;
+}
+
+
+// -------------------------
+// PROFİL GÜNCELLEME
+// -------------------------
+document.getElementById("profileForm").addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const form = e.target;
+    const alertContainer = document.getElementById("alertContainer");
+    const spinner = document.getElementById("profileSpinner");
+
+    if (!form.checkValidity()) {
+        form.classList.add("was-validated");
+        return;
+    }
+
+    spinner.classList.remove("d-none");
+
+    const json = Object.fromEntries(new FormData(form).entries());
+
+    // Önizleme güncellemesi
+    if (json.ProfileImage)
+        document.getElementById("profilePreview").src = json.ProfileImage;
+
+    const res = await fetch("/api/profile/update", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify(json)
+    });
+
+    const data = await res.json();
+
+    spinner.classList.add("d-none");
+
+    alertContainer.innerHTML = `
+        <div class="alert alert-${res.ok ? "success" : "danger"} alert-dismissible fade show">
+            ${data.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+});
+
+
+// -------------------------
+// ŞİFRE DEĞİŞTİRME
+// -------------------------
+document.getElementById("passwordForm").addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const form = e.target;
+    const alertContainer = document.getElementById("alertContainer");
+    const spinner = document.getElementById("passwordSpinner");
+
+    if (!form.checkValidity()) {
+        form.classList.add("was-validated");
+        return;
+    }
+
+    spinner.classList.remove("d-none");
+
+    const json = Object.fromEntries(new FormData(form).entries());
+
+    const res = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify(json)
+    });
+
+    const data = await res.json();
+
+    spinner.classList.add("d-none");
+
+    alertContainer.innerHTML = `
+        <div class="alert alert-${res.ok ? "success" : "danger"} alert-dismissible fade show">
+            ${data.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+});
+</script>
