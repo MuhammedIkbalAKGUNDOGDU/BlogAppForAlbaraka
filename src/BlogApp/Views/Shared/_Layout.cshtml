@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -27,6 +27,9 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+                    <ul class="navbar-nav" id="authNav">
+                        <!-- Dinamik olarak doldurulacak -->
+                    </ul>
                 </div>
             </div>
         </nav>
@@ -45,6 +48,70 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Token ve kullanıcı kontrolü
+        function updateAuthNav() {
+            const authNav = document.getElementById('authNav');
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+            
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    authNav.innerHTML = `
+                        <li class="nav-item dropdown">
+                            <a class="nav-link text-dark dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                ${user.firstName || user.FirstName || ''} ${user.lastName || user.LastName || ''}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="logout()">Çıkış Yap</a></li>
+                            </ul>
+                        </li>
+                    `;
+                } catch (e) {
+                    // JSON parse hatası durumunda
+                    authNav.innerHTML = `
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="#" onclick="logout()">Çıkış Yap</a>
+                        </li>
+                    `;
+                }
+            } else {
+                authNav.innerHTML = `
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/AuthView/Login">Giriş Yap</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/AuthView/Register">Kayıt Ol</a>
+                    </li>
+                `;
+            }
+        }
+
+        // Çıkış yap fonksiyonu
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/AuthView/Login';
+        }
+
+        // Sayfa yüklendiğinde header'ı güncelle
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAuthNav();
+        });
+
+        // Storage değişikliklerini dinle (diğer tab'lardan giriş/çıkış yapıldığında)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'token' || e.key === 'user') {
+                updateAuthNav();
+            }
+        });
+
+        // Auth state değişikliklerini dinle (aynı sayfada giriş/çıkış yapıldığında)
+        window.addEventListener('authStateChanged', function() {
+            updateAuthNav();
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

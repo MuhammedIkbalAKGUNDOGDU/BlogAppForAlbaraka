@@ -42,6 +42,14 @@
 </div>
 
 <script>
+// Eğer kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
+document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('token');
+    if (token) {
+        window.location.href = '/';
+    }
+});
+
 document.getElementById("loginForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     
@@ -93,6 +101,14 @@ document.getElementById("loginForm").addEventListener("submit", async function (
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 `;
+                
+                // Header'ı güncelle (eğer fonksiyon mevcutsa)
+                if (typeof updateAuthNav === 'function') {
+                    updateAuthNav();
+                }
+                
+                // Custom event dispatch et (layout'taki script dinleyebilir)
+                window.dispatchEvent(new Event('authStateChanged'));
                 
                 setTimeout(() => {
                     window.location.href = '/';
