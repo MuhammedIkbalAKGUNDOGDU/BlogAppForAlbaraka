@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.DTOs;
+using BlogApp.Services;  // RabbitMQService için
 
 namespace BlogApp.Controllers
 {
@@ -11,10 +12,12 @@ namespace BlogApp.Controllers
     public class AdminApiController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly RabbitMQService _rabbitMQService;  // RabbitMQ servisi
 
-        public AdminApiController(AppDbContext context)
+        public AdminApiController(AppDbContext context, RabbitMQService rabbitMQService)
         {
             _context = context;
+            _rabbitMQService = rabbitMQService;  // Dependency injection ile al
         }
 
         // GET: api/admin/draft-posts
@@ -92,18 +95,34 @@ namespace BlogApp.Controllers
                 return Unauthorized(new { message = "Admin yetkisi gereklidir." });
             }
 
-            var post = await _context.BlogPosts.FindAsync(id);
+            var post = await _context.BlogPosts
+                .Include(p => p.User)  // Yazar bilgisini de getir
+                .FirstOrDefaultAsync(p => p.Id == id);
+            
             if (post == null)
             {
                 return NotFound(new { message = "Yazı bulunamadı." });
             }
 
-            post.IsDraft = false;
-            post.UpdatedAt = DateTime.UtcNow;
+            // Yazıyı onayla ve yayınla
+            post.IsDraft = false;  // Draft'tan çıkar
+            post.UpdatedAt = DateTime.UtcNow;  // Güncelleme tarihini ayarla
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();  // Değişiklikleri kaydet
 
-            return Ok(new { message = "Yazı onaylandı ve yayınlandı." });
+            // Yazarın takipçilerini bul
+            var followers = await _context.Set<UserFollower>()
+                .Where(uf => uf.FollowingId == post.UserId)  // Bu yazarı takip edenler
+                .Select(uf => uf.FollowerId)  // Sadece takipçi ID'lerini al
+                .ToListAsync();
+
+            // Her takipçi için RabbitMQ'ya mesaj gönder
+            foreach (var followerId in followers)
+            {
+                _rabbitMQService.PublishEmailMessage(post.Id, followerId);  // RabbitMQ'ya mesaj ekle
+            }
+
+            return Ok(new { message = "Yazı onaylandı ve yayınlandı.", emailCount = followers.Count });
         }
 
         // POST: api/admin/unpublish-post/{id}

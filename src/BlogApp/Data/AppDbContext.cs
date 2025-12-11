@@ -14,6 +14,7 @@ namespace BlogApp.Data
         public DbSet<BlogPost> BlogPosts { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<PostLike> PostLikes { get; set; }
+        public DbSet<EmailQueue> EmailQueues { get; set; }  // Email kuyruğu için DbSet
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 {

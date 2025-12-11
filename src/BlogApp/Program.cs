@@ -4,6 +4,7 @@ using BlogApp.Data;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using BlogApp.Services;  // Servisler için namespace
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,15 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor(); // For IHttpContextAccessor
+
+// Email Service - Singleton olarak ekle (tek instance, tüm uygulama boyunca yaşar)
+builder.Services.AddSingleton<EmailService>();  // Email gönderme servisi
+
+// RabbitMQ Service - Singleton olarak ekle (tek bağlantı, tüm uygulama boyunca yaşar)
+builder.Services.AddSingleton<RabbitMQService>();  // RabbitMQ bağlantı ve mesaj yönetimi
+
+// Email Consumer Service - Background service olarak ekle (arka planda sürekli çalışır)
+builder.Services.AddHostedService<EmailConsumerService>();  // RabbitMQ'dan mesaj dinleyip email gönderen servis
 
 // Session support for admin panel
 builder.Services.AddDistributedMemoryCache();
