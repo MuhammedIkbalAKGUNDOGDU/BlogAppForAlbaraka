@@ -1,0 +1,225 @@
+@{
+    ViewData["Title"] = "Yazı Düzenle";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <h2 class="card-title mb-4">Yazıyı Düzenle</h2>
+                
+                <div id="alertContainer"></div>
+
+                <form id="editPostForm" novalidate>
+                    <div class="mb-3">
+                        <label for="categoryId" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select class="form-select" id="categoryId" required>
+                            <option value="">Kategori seçiniz...</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Lütfen bir kategori seçiniz.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Başlık <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" required />
+                        <div class="invalid-feedback">
+                            Lütfen başlık giriniz.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="content" class="form-label">İçerik <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="content" rows="10" required></textarea>
+                        <div class="invalid-feedback">
+                            Lütfen içerik giriniz.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="coverImage" class="form-label">Kapak Resmi URL (Opsiyonel)</label>
+                        <input type="url" class="form-control" id="coverImage" placeholder="https://example.com/image.jpg" />
+                        <div class="form-text">Kapak resmi için bir URL girebilirsiniz.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <span id="submitSpinner" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                            Değişiklikleri Kaydet
+                        </button>
+                        <a href="/BlogPost/MyPosts" class="btn btn-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPostId = null;
+let currentUserId = null;
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // URL'den post ID'yi al
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id');
+    
+    if (!postId || isNaN(postId)) {
+        document.getElementById('alertContainer').innerHTML = `
+            <div class="alert alert-danger">Geçersiz yazı ID'si.</div>
+        `;
+        return;
+    }
+
+    currentPostId = parseInt(postId);
+    
+    // Kullanıcı bilgisini al
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    try {
+        const user = JSON.parse(userStr);
+        currentUserId = user.id || user.Id;
+    } catch (e) {
+        console.error('Kullanıcı bilgisi okunamadı:', e);
+        window.location.href = '/AuthView/Login';
+        return;
+    }
+
+    // Kategorileri yükle
+    await loadCategories();
+    
+    // Yazı bilgilerini yükle
+    await loadPost();
+});
+
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/category');
+        if (res.ok) {
+            const categories = await res.json();
+            const categorySelect = document.getElementById('categoryId');
+            
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Kategoriler yüklenemedi:', error);
+    }
+}
+
+async function loadPost() {
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}/edit?userId=${currentUserId}`);
+        if (res.ok) {
+            const post = await res.json();
+            
+            // Form alanlarını doldur
+            document.getElementById('categoryId').value = post.categoryId;
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            document.getElementById('coverImage').value = post.coverImage || '';
+        } else {
+            const txt = await res.text();
+            try {
+                const json = JSON.parse(txt);
+                showError(json.message || 'Yazı yüklenemedi.');
+                if (res.status === 401 || res.status === 403) {
+                    setTimeout(() => {
+                        window.location.href = '/BlogPost/MyPosts';
+                    }, 2000);
+                }
+            } catch {
+                showError('Yazı yüklenemedi.');
+            }
+        }
+    } catch (error) {
+        showError('Bir hata oluştu.');
+    }
+}
+
+document.getElementById('editPostForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const alertContainer = document.getElementById('alertContainer');
+    const submitSpinner = document.getElementById('submitSpinner');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
+    alertContainer.innerHTML = '';
+    submitSpinner.classList.remove('d-none');
+    submitButton.disabled = true;
+
+    const payload = {
+        postId: currentPostId,
+        userId: currentUserId,
+        categoryId: parseInt(document.getElementById('categoryId').value),
+        title: document.getElementById('title').value.trim(),
+        content: document.getElementById('content').value.trim(),
+        coverImage: document.getElementById('coverImage').value.trim() || null
+    };
+
+    try {
+        const res = await fetch(`/api/blogpost/${currentPostId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const txt = await res.text();
+
+        if (res.ok) {
+            try {
+                const data = JSON.parse(txt);
+                alertContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Başarılı!</strong> ${data.message || 'Yazı güncellendi.'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = '/BlogPost/MyPosts';
+                }, 1500);
+            } catch (e) {
+                showError('Yazı güncellendi ancak yanıt işlenemedi.');
+            }
+        } else {
+            try {
+                const json = JSON.parse(txt);
+                showError(json.message || 'Yazı güncellenemedi.');
+            } catch {
+                showError(txt || 'Yazı güncellenemedi. Lütfen tekrar deneyin.');
+            }
+        }
+    } catch (error) {
+        showError('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+        submitSpinner.classList.add('d-none');
+        submitButton.disabled = false;
+    }
+});
+
+function showError(message) {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Hata!</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
+</script>

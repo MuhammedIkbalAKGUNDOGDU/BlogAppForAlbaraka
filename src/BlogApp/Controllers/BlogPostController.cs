@@ -87,6 +87,12 @@ namespace BlogApp.Controllers
         {
             return View();
         }
+
+        // GET: BlogPost/Edit/{id}
+        public IActionResult Edit(int id)
+        {
+            return View();
+        }
     }
 
     [Route("api/blogpost")]
@@ -286,6 +292,92 @@ namespace BlogApp.Controllers
                 .AnyAsync(l => l.PostId == id && l.UserId == userId);
 
             return Ok(new { isLiked });
+        }
+
+        // GET: api/blogpost/{id}/edit
+        [HttpGet("{id}/edit")]
+        public async Task<IActionResult> GetPostForEdit(int id, [FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı bilgisi bulunamadı." });
+            }
+
+            var post = await _context.BlogPosts
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            // Sadece yazının sahibi düzenleyebilir
+            if (post.UserId != userId)
+            {
+                return Unauthorized(new { message = "Bu yazıyı düzenleme yetkiniz yok." });
+            }
+
+            return Ok(new
+            {
+                post.Id,
+                post.Title,
+                post.Content,
+                post.CoverImage,
+                post.CategoryId,
+                Category = new { post.Category!.Id, post.Category.Name }
+            });
+        }
+
+        // PUT: api/blogpost/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePost(int id, [FromBody] BlogPostUpdateDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Content))
+            {
+                return BadRequest(new { message = "Başlık ve içerik zorunludur." });
+            }
+
+            if (dto.CategoryId <= 0)
+            {
+                return BadRequest(new { message = "Kategori seçimi zorunludur." });
+            }
+
+            if (dto.UserId <= 0)
+            {
+                return BadRequest(new { message = "Kullanıcı bilgisi bulunamadı." });
+            }
+
+            // Yazıyı bul
+            var post = await _context.BlogPosts.FindAsync(id);
+            if (post == null)
+            {
+                return NotFound(new { message = "Yazı bulunamadı." });
+            }
+
+            // Sadece yazının sahibi güncelleyebilir
+            if (post.UserId != dto.UserId)
+            {
+                return Unauthorized(new { message = "Bu yazıyı düzenleme yetkiniz yok." });
+            }
+
+            // Kategori var mı kontrol et
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+            if (!categoryExists)
+            {
+                return BadRequest(new { message = "Geçersiz kategori seçimi." });
+            }
+
+            // Yazıyı güncelle
+            post.CategoryId = dto.CategoryId;
+            post.Title = dto.Title.Trim();
+            post.Content = dto.Content.Trim();
+            post.CoverImage = string.IsNullOrWhiteSpace(dto.CoverImage) ? null : dto.CoverImage.Trim();
+            post.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Yazı başarıyla güncellendi.", postId = post.Id });
         }
     }
 }

@@ -77,18 +77,23 @@
                             </td>
                             <td>@post.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                             <td>
-                                @if (post.IsDraft)
-                                {
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-clock-history"></i> Admin Onayı Bekliyor
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">
-                                        <i class="bi bi-check-circle"></i> Yayında
-                                    </span>
-                                }
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (post.IsDraft)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-clock-history"></i> Admin Onayı Bekliyor
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Yayında
+                                        </span>
+                                    }
+                                    <a href="/BlogPost/Edit?id=@post.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i> Düzenle
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
