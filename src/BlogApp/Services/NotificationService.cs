@@ -125,7 +125,7 @@ public class NotificationService
                 <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
                     <h2 style='color: #ffc107;'>Hesabınız Askıya Alındı</h2>
                     <p>Merhaba {user.FirstName} {user.LastName},</p>
-                    <p>Hesabınız geçici olarak askıya alınmıştır. Bu nedenle şu anda giriş yapamaz ve platformu kullanamazsınız.</p>
+                    <p>Hesabınız geçici olarak(5 gün süreyle) askıya alınmıştır. Bu nedenle şu anda giriş yapamaz ve platformu kullanamazsınız.</p>
                     <p>Bu durumla ilgili sorularınız için lütfen yönetici ile iletişime geçin.</p>
                     <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>
                     <p style='color: #666; font-size: 12px;'>Bu otomatik bir e-postadır. Lütfen yanıtlamayın.</p>
