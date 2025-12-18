@@ -14,7 +14,6 @@ public class EmailService
 
     public EmailService()
     {
-        // .env dosyasından SMTP ayarlarını oku
         _smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST") ?? "smtp.gmail.com";
         _smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587");
         _smtpUsername = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? "";
@@ -22,7 +21,6 @@ public class EmailService
         _fromEmail = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "";
         _fromName = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "BlogApp";
 
-        // SMTP ayarlarını kontrol et ve log yaz
         if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
         {
             Console.WriteLine("UYARI: SMTP_USERNAME veya SMTP_PASSWORD .env dosyasında tanımlı değil!");
@@ -33,7 +31,7 @@ public class EmailService
         }
     }
 
-    // Email gönderme metodu
+    // Email gönderme 
     public async Task<bool> SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         try

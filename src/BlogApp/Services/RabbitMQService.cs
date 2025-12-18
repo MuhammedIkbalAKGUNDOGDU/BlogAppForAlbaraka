@@ -6,20 +6,19 @@ namespace BlogApp.Services;
 
 public class RabbitMQService : IDisposable
 {
-    private readonly IConnection _connection;  // RabbitMQ bağlantısı
-    private readonly IModel _channel;         // RabbitMQ kanalı (mesaj gönderme/alma için)
-    private readonly string _queueName;       // Queue adı
+    private readonly IConnection _connection;  //rabbitmq bağlantı
+    private readonly IModel _channel;         
+    private readonly string _queueName;       
 
     public RabbitMQService()
     {
-        // .env'den RabbitMQ ayarlarını oku
         var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         var port = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672");
         var username = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME") ?? "guest";
         var password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
         _queueName = Environment.GetEnvironmentVariable("RABBITMQ_QUEUE_NAME") ?? "email_queue";
 
-        // Connection factory oluştur
+        // Connection factory diye bir şey oluşturmak gerekiyor
         var factory = new ConnectionFactory()
         {
             HostName = host,      // RabbitMQ sunucu adresi
@@ -61,19 +60,16 @@ public class RabbitMQService : IDisposable
             // Mesaj objesi oluştur
             var message = new
             {
-                PostId = postId,   // Blog post ID
-                UserId = userId    // Takipçi kullanıcı ID
+                PostId = postId,   
+                UserId = userId   
             };
 
-            // JSON'a çevir
-            var json = JsonSerializer.Serialize(message);
+            var json = JsonSerializer.Serialize(message);             // JSON'a çevir
             var body = Encoding.UTF8.GetBytes(json);  // Byte array'e çevir
 
-            // Mesaj özelliklerini ayarla
             var properties = _channel.CreateBasicProperties();
             properties.Persistent = true;  // Mesaj kalıcı olsun (disk'e yazılsın)
 
-            // Queue'ya mesaj gönder
             _channel.BasicPublish(
                 exchange: "",           // Exchange yok (direct queue)
                 routingKey: _queueName, // Queue adı
