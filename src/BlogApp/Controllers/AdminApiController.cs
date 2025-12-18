@@ -265,6 +265,16 @@ namespace BlogApp.Controllers
             user.Status = dto.Status;
             user.IsActive = dto.Status == UserStatus.Active; // Backward compatibility
 
+            // Suspended durumu için tarih kaydet, Active yapıldığında temizle
+            if (dto.Status == UserStatus.Suspended)
+            {
+                user.SuspendedAt = DateTime.UtcNow;
+            }
+            else if (dto.Status == UserStatus.Active)
+            {
+                user.SuspendedAt = null; 
+            }
+
             await _context.SaveChangesAsync();
 
             // Bildirim gönder

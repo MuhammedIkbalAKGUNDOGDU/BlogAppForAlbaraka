@@ -63,7 +63,10 @@ builder.Services.AddSingleton<RabbitMQService>();
 builder.Services.AddSingleton<NotificationService>(); 
 
 // Email Consumer Service - Background service olarak ekle (arka planda sürekli çalışır)
-builder.Services.AddHostedService<EmailConsumerService>();  
+builder.Services.AddHostedService<EmailConsumerService>();
+
+// User Auto Activation Service - Suspended kullanıcıları 5 gün sonra otomatik aktif eder
+builder.Services.AddHostedService<UserAutoActivationService>();  
 
 // jwt olmadı admin panel için session support
 builder.Services.AddDistributedMemoryCache();

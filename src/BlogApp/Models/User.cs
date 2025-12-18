@@ -25,6 +25,8 @@ public class User
     
     public UserStatus Status { get; set; } = UserStatus.Active; 
 
+    public DateTime? SuspendedAt { get; set; } // Suspended olma tarihi (5 gün sonra otomatik aktif olacak)
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 
 
