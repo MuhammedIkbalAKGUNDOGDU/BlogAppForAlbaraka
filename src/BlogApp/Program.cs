@@ -4,24 +4,15 @@ using BlogApp.Data;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using BlogApp.Services;  // Servisler için namespace
+using BlogApp.Services;  
 
 var builder = WebApplication.CreateBuilder(args);
 
-//
-// Load .env file
-//
 Env.Load();
 
-//
-// Port settings
-//
 var port = Environment.GetEnvironmentVariable("APP_PORT") ?? "5001";
 builder.WebHost.UseUrls($"http://*:{port}");
 
-//
-// Database connection
-//
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
 var dbPort = Environment.GetEnvironmentVariable("DB_PORT");
 var dbName = Environment.GetEnvironmentVariable("DB_NAME");
@@ -36,7 +27,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 
-// JWT Authentication
+// JWT Authentication yapamadım ama olsun
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -60,18 +51,21 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpContextAccessor(); // For IHttpContextAccessor
+builder.Services.AddHttpContextAccessor(); 
 
 // Email Service - Singleton olarak ekle (tek instance, tüm uygulama boyunca yaşar)
-builder.Services.AddSingleton<EmailService>();  // Email gönderme servisi
+builder.Services.AddSingleton<EmailService>();  
 
 // RabbitMQ Service - Singleton olarak ekle (tek bağlantı, tüm uygulama boyunca yaşar)
-builder.Services.AddSingleton<RabbitMQService>();  // RabbitMQ bağlantı ve mesaj yönetimi
+builder.Services.AddSingleton<RabbitMQService>();  
+
+// Notification Service - Singleton olarak ekle (admin işlem bildirimleri için)
+builder.Services.AddSingleton<NotificationService>(); 
 
 // Email Consumer Service - Background service olarak ekle (arka planda sürekli çalışır)
-builder.Services.AddHostedService<EmailConsumerService>();  // RabbitMQ'dan mesaj dinleyip email gönderen servis
+builder.Services.AddHostedService<EmailConsumerService>();  
 
-// Session support for admin panel
+// jwt olmadı admin panel için session support
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -82,32 +76,23 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-//
-// Error / HSTS
-//
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-//
-// Pipeline
-//
 app.UseHttpsRedirection();
 
 app.UseRouting();
 
 app.UseSession();          // Session middleware
 
-app.UseAuthentication();   // <----- ÖNCE bu
-app.UseAuthorization();    // <----- sonra bu
+app.UseAuthentication(); 
+app.UseAuthorization();   
 
 app.MapStaticAssets();
 
-//
-// Default routing
-//
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")

@@ -5,9 +5,9 @@ public class EmailQueue
     public int Id { get; set; }
     public int PostId { get; set; }
     public BlogPost? Post { get; set; }
-    public int UserId { get; set; } // Takipçi kullanıcı ID
+    public int UserId { get; set; } 
     public User? User { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending, Sent, Failed
+    public string Status { get; set; } = "Pending"; 
     public string? ErrorMessage { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? SentAt { get; set; }

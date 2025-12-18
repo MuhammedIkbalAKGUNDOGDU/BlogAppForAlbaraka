@@ -20,9 +20,7 @@ namespace BlogApp.Controllers
             _context = context;
         }
 
-        // ----------------------------------------------------
-        // UPDATE PROFILE
-        // ----------------------------------------------------
+        
         [HttpPut("update")]
         public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdateDto dto)
         {
@@ -48,9 +46,6 @@ namespace BlogApp.Controllers
             return Ok(new { message = "Profile updated successfully" });
         }
 
-        // ----------------------------------------------------
-        // CHANGE PASSWORD
-        // ----------------------------------------------------
         [HttpPut("password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
@@ -72,9 +67,7 @@ namespace BlogApp.Controllers
             return Ok(new { message = "Password updated successfully" });
         }
 
-        // ----------------------------------------------------
-// GET PROFILE (Mevcut Bilgileri Getir)
-// ----------------------------------------------------
+     
 [HttpGet]
 public async Task<IActionResult> GetProfile()
 {

@@ -9,30 +9,29 @@ public enum UserStatus
 
 public class User
 {
-    public int Id { get; set; } // Kullanıcı benzersiz ID
+    public int Id { get; set; } 
 
-    public string FirstName { get; set; } = string.Empty; // Ad
-    public string LastName { get; set; } = string.Empty;  // Soyad
+    public string FirstName { get; set; } = string.Empty; 
+    public string LastName { get; set; } = string.Empty;  
 
-    public string Email { get; set; } = string.Empty; // Giriş için kullanılan email
-    public string PasswordHash { get; set; } = string.Empty; // Şifre hash (asla plain text tutulmaz)
+    public string Email { get; set; } = string.Empty; 
+    public string PasswordHash { get; set; } = string.Empty; 
 
-    public string? ProfileImage { get; set; } // Profil resmi (opsiyonel)
+    public string? ProfileImage { get; set; } 
 
-    public string Role { get; set; } = "user"; // "user" veya "admin"
+    public string Role { get; set; } = "user"; 
 
-    public bool IsActive { get; set; } = true; // Admin kullanıcıyı dondurursa false olur (deprecated - Status kullanılacak)
+    public bool IsActive { get; set; } = true; 
     
-    public UserStatus Status { get; set; } = UserStatus.Active; // Kullanıcı durumu: Active, Suspended, Banned
+    public UserStatus Status { get; set; } = UserStatus.Active; 
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Hesap oluşturma tarihi
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 
 
-    // Navigation Properties (ilişkiler)
-    public List<BlogPost>? Posts { get; set; } // Kullanıcının yazıları
-    public List<Comment>? Comments { get; set; } // Kullanıcının yorumları
-    public List<PostLike>? Likes { get; set; } // Kullanıcının beğendiği yazılar
+    public List<BlogPost>? Posts { get; set; } 
+    public List<Comment>? Comments { get; set; } 
+    public List<PostLike>? Likes { get; set; } 
 
-    public List<UserFollower>? Followers { get; set; } // Bu kullanıcıyı takip edenler
-    public List<UserFollower>? Following { get; set; } // Bu kullanıcının takip ettikleri
+    public List<UserFollower>? Followers { get; set; } 
+    public List<UserFollower>? Following { get; set; } 
 }

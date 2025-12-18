@@ -7,7 +7,7 @@ namespace BlogApp.Controllers
     {
         public IActionResult Index()
         {
-            return View(); // Views/Profile/Index.cshtml
+            return View(); 
         }
     }
 }

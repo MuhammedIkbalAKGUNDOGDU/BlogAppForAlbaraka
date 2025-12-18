@@ -10,7 +10,7 @@ public class Comment
     public int PostId { get; set; }
     public BlogPost? Post { get; set; }
 
-    public string Content { get; set; } = string.Empty; // Yorum metni
+    public string Content { get; set; } = string.Empty; 
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Yorum tarihi
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 }

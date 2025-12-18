@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.DTOs;
-using BlogApp.Services;  // RabbitMQService için
+using BlogApp.Services;  
 
 namespace BlogApp.Controllers
 {
@@ -12,15 +12,16 @@ namespace BlogApp.Controllers
     public class AdminApiController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly RabbitMQService _rabbitMQService;  // RabbitMQ servisi
+        private readonly RabbitMQService _rabbitMQService;  
+        private readonly NotificationService _notificationService;  
 
-        public AdminApiController(AppDbContext context, RabbitMQService rabbitMQService)
+        public AdminApiController(AppDbContext context, RabbitMQService rabbitMQService, NotificationService notificationService)
         {
             _context = context;
-            _rabbitMQService = rabbitMQService;  // Dependency injection ile al
+            _rabbitMQService = rabbitMQService;  
+            _notificationService = notificationService;  
         }
 
-        // GET: api/admin/draft-posts
         [HttpGet("draft-posts")]
         public async Task<IActionResult> GetDraftPosts()
         {
@@ -122,6 +123,9 @@ namespace BlogApp.Controllers
                 _rabbitMQService.PublishEmailMessage(post.Id, followerId);  // RabbitMQ'ya mesaj ekle
             }
 
+            // Yazarına bildirim gönder
+            await _notificationService.SendNotificationAsync(NotificationType.PostApproved, post.UserId, post.Id);
+
             return Ok(new { message = "Yazı onaylandı ve yayınlandı.", emailCount = followers.Count });
         }
 
@@ -140,10 +144,15 @@ namespace BlogApp.Controllers
                 return NotFound(new { message = "Yazı bulunamadı." });
             }
 
+            var userId = post.UserId; // Silmeden önce kullanıcı ID'sini al
+
             post.IsDraft = true;
             post.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // Yazarına bildirim gönder
+            await _notificationService.SendNotificationAsync(NotificationType.PostUnpublished, userId, post.Id);
 
             return Ok(new { message = "Yazı draft'a çekildi." });
         }
@@ -157,14 +166,23 @@ namespace BlogApp.Controllers
                 return Unauthorized(new { message = "Admin yetkisi gereklidir." });
             }
 
-            var post = await _context.BlogPosts.FindAsync(id);
+            var post = await _context.BlogPosts
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            
             if (post == null)
             {
                 return NotFound(new { message = "Yazı bulunamadı." });
             }
 
+            var userId = post.UserId; // Silmeden önce kullanıcı ID'sini al
+            var postId = post.Id; // Silmeden önce post ID'sini al
+
             _context.BlogPosts.Remove(post);
             await _context.SaveChangesAsync();
+
+            // Yazarına bildirim gönder (post silindikten sonra ama bilgileri hala elimizde)
+            await _notificationService.SendNotificationAsync(NotificationType.PostDeleted, userId, postId);
 
             return Ok(new { message = "Yazı başarıyla silindi." });
         }
@@ -248,6 +266,16 @@ namespace BlogApp.Controllers
             user.IsActive = dto.Status == UserStatus.Active; // Backward compatibility
 
             await _context.SaveChangesAsync();
+
+            // Bildirim gönder
+            if (dto.Status == UserStatus.Banned)
+            {
+                await _notificationService.SendNotificationAsync(NotificationType.UserBanned, user.Id);
+            }
+            else if (dto.Status == UserStatus.Suspended)
+            {
+                await _notificationService.SendNotificationAsync(NotificationType.UserSuspended, user.Id);
+            }
 
             var statusText = dto.Status switch
             {

@@ -4,8 +4,7 @@ public class Category
 {
     public int Id { get; set; }
 
-    public string Name { get; set; } = string.Empty; // Kategori adı örn: Teknoloji, Spor...
+    public string Name { get; set; } = string.Empty; 
 
-    // Navigation
-    public List<BlogPost>? Posts { get; set; } // Bu kategoriye ait yazılar
+    public List<BlogPost>? Posts { get; set; } 
 }

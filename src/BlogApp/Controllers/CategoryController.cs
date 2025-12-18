@@ -19,7 +19,6 @@ namespace BlogApp.Controllers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // GET: api/category
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -31,7 +30,6 @@ namespace BlogApp.Controllers
             return Ok(categories);
         }
 
-        // POST: api/category
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDto dto)
         {
@@ -63,7 +61,6 @@ namespace BlogApp.Controllers
             return Ok(new { message = "Kategori başarıyla oluşturuldu.", category = new { category.Id, category.Name } });
         }
 
-        // DELETE: api/category/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -78,7 +75,7 @@ namespace BlogApp.Controllers
                 return NotFound(new { message = "Kategori bulunamadı." });
             }
 
-            // Kategoriye ait post var mı kontrol et
+            // Kategoriye ait post var mı kontrol edelim bi önce bakalım
             var hasPosts = await _context.BlogPosts.AnyAsync(p => p.CategoryId == id);
             if (hasPosts)
             {

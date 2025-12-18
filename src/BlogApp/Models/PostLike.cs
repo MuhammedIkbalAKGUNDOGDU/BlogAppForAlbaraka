@@ -4,11 +4,11 @@ public class PostLike
 {
     public int Id { get; set; }
 
-    public int UserId { get; set; } // Beğenen kullanıcı
+    public int UserId { get; set; } 
     public User? User { get; set; }
 
-    public int PostId { get; set; } // Beğenilen gönderi
+    public int PostId { get; set; } 
     public BlogPost? Post { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Beğenme zamanı
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 }

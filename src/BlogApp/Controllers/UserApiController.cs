@@ -61,7 +61,7 @@ namespace BlogApp.Controllers
             }
         }
 
-        // GET: api/user/{id}/is-following
+        // uf userfollower
         [HttpGet("{id}/is-following")]
         public async Task<IActionResult> IsFollowing(int id, [FromQuery] int followerId)
         {
