@@ -27,9 +27,7 @@ namespace BlogApp.Controllers
             _emailService = emailService;
         }
 
-        // -------------------------------------------------------
-        // REGISTER
-        // -------------------------------------------------------
+       
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
@@ -59,9 +57,6 @@ namespace BlogApp.Controllers
             return Ok(new { message = "User created successfully" });
         }
 
-        // -------------------------------------------------------
-        // LOGIN
-        // -------------------------------------------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
@@ -100,10 +95,7 @@ namespace BlogApp.Controllers
                 }
             });
         }
-
-        // -------------------------------------------------------
-        // JWT TOKEN ÜRETME
-        // -------------------------------------------------------
+            //jwt token üretim
         private string GenerateToken(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
@@ -128,9 +120,6 @@ namespace BlogApp.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // -------------------------------------------------------
-        // ŞİFRE SIFIRLAMA - FORGOT PASSWORD
-        // -------------------------------------------------------
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
@@ -147,7 +136,7 @@ namespace BlogApp.Controllers
                 return Ok(new { message = "Eğer bu e-posta adresi kayıtlıysa, şifre sıfırlama bağlantısı gönderildi." });
             }
 
-            // Eski token'ları geçersiz kıl (aynı email için)
+            // Eski token'ları geçersiz kıl aynı mail için
             var oldTokens = await _context.PasswordResetTokens
                 .Where(t => t.Email == user.Email && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
                 .ToListAsync();
@@ -171,7 +160,7 @@ namespace BlogApp.Controllers
             _context.PasswordResetTokens.Add(resetToken);
             await _context.SaveChangesAsync();
 
-            // Email gönder (EmailService kullanarak)
+            // Email gönderme kısmı deafult mail body html olrak yaptım
             var appPort = Environment.GetEnvironmentVariable("APP_PORT") ?? "5055";
             var baseUrl = $"http://localhost:{appPort}";
             var resetUrl = $"{baseUrl}/AuthView/ResetPassword?token={Uri.EscapeDataString(token)}";
@@ -209,15 +198,12 @@ namespace BlogApp.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Şifre sıfırlama emaili gönderilemedi: {ex.Message}");
-                // Email gönderilemese bile token oluşturuldu, kullanıcıya genel mesaj döndür
             }
 
             return Ok(new { message = "Eğer bu e-posta adresi kayıtlıysa, şifre sıfırlama bağlantısı gönderildi." });
         }
 
-        // -------------------------------------------------------
-        // ŞİFRE SIFIRLAMA - TOKEN DOĞRULAMA
-        // -------------------------------------------------------
+       
         [HttpGet("validate-reset-token")]
         public async Task<IActionResult> ValidateResetToken([FromQuery] string token)
         {

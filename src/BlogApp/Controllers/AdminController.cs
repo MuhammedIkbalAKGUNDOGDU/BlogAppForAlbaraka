@@ -36,7 +36,6 @@ namespace BlogApp.Controllers
                 return BadRequest(new { message = "Kullanıcı adı ve şifre gereklidir." });
             }
 
-            // Admin kullanıcıyı bul
             var admin = await _context.Users
                 .FirstOrDefaultAsync(u => u.Role == "admin" && u.Email == dto.Username);
 
@@ -45,21 +44,19 @@ namespace BlogApp.Controllers
                 return Unauthorized(new { message = "Geçersiz kullanıcı adı veya şifre." });
             }
 
-            // Şifre kontrolü
             var isValidPassword = BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash);
             if (!isValidPassword)
             {
                 return Unauthorized(new { message = "Geçersiz kullanıcı adı veya şifre." });
             }
 
-            // Admin oturum bilgisini session'a kaydet
+            // sessionn kayıt et
             HttpContext.Session.SetString("AdminId", admin.Id.ToString());
             HttpContext.Session.SetString("AdminEmail", admin.Email);
 
             return Ok(new { message = "Giriş başarılı", redirectUrl = "/Admin/Dashboard" });
         }
 
-        // GET: Admin/Dashboard
         public IActionResult Dashboard()
         {
             if (!IsAdminLoggedIn())
@@ -70,7 +67,6 @@ namespace BlogApp.Controllers
             return View();
         }
 
-        // GET: Admin/Categories
         public IActionResult Categories()
         {
             if (!IsAdminLoggedIn())
@@ -81,7 +77,6 @@ namespace BlogApp.Controllers
             return View();
         }
 
-        // GET: Admin/Posts
         public IActionResult Posts()
         {
             if (!IsAdminLoggedIn())
@@ -92,7 +87,6 @@ namespace BlogApp.Controllers
             return View();
         }
 
-        // GET: Admin/PublishedPosts
         public IActionResult PublishedPosts()
         {
             if (!IsAdminLoggedIn())
@@ -103,7 +97,6 @@ namespace BlogApp.Controllers
             return View();
         }
 
-        // GET: Admin/Users
         public IActionResult Users()
         {
             if (!IsAdminLoggedIn())
@@ -114,7 +107,6 @@ namespace BlogApp.Controllers
             return View();
         }
 
-        // POST: Admin/Logout
         [HttpPost]
         public IActionResult Logout()
         {
@@ -122,7 +114,6 @@ namespace BlogApp.Controllers
             return Ok(new { message = "Çıkış yapıldı", redirectUrl = "/Admin/Login" });
         }
 
-        // Helper method
         private bool IsAdminLoggedIn()
         {
             return !string.IsNullOrEmpty(HttpContext.Session.GetString("AdminId"));
