@@ -38,9 +38,35 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="coverImage" class="form-label">Kapak Resmi URL (Opsiyonel)</label>
-                        <input type="url" class="form-control" id="coverImage" placeholder="https://example.com/image.jpg" />
-                        <div class="form-text">Kapak resmi için bir URL girebilirsiniz.</div>
+                        <label class="form-label">Kapak Resmi (Opsiyonel)</label>
+                        
+                        <!-- URL veya Dosya Seçimi -->
+                        <div class="btn-group mb-2" role="group">
+                            <input type="radio" class="btn-check" name="coverImageType" id="coverImageUrl" value="url" checked>
+                            <label class="btn btn-outline-primary" for="coverImageUrl">URL</label>
+                            
+                            <input type="radio" class="btn-check" name="coverImageType" id="coverImageFile" value="file">
+                            <label class="btn btn-outline-primary" for="coverImageFile">Dosya Yükle</label>
+                        </div>
+
+                        <!-- URL Input -->
+                        <div id="urlInputContainer">
+                            <input type="url" class="form-control" id="coverImage" placeholder="https://example.com/image.jpg" />
+                            <div class="form-text">Kapak resmi için bir URL girebilirsiniz.</div>
+                        </div>
+                        
+                        <!-- Hidden input for uploaded file URL -->
+                        <input type="hidden" id="coverImageUrl" />
+
+                        <!-- File Input -->
+                        <div id="fileInputContainer" style="display: none;">
+                            <input type="file" class="form-control" id="coverImageFileInput" accept="image/*" />
+                            <div class="form-text">JPG, PNG, GIF veya WEBP formatında, maksimum 5MB.</div>
+                            <div id="fileUploadStatus" class="mt-2"></div>
+                            <div id="uploadedImagePreview" class="mt-2" style="display: none;">
+                                <img id="previewImg" src="" alt="Önizleme" class="img-thumbnail" style="max-width: 300px; max-height: 300px;" />
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -84,6 +110,68 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch (error) {
         showError(document.getElementById('alertContainer'), 'Kategoriler yüklenirken bir hata oluştu.');
     }
+
+    // Cover image type değiştiğinde
+    document.querySelectorAll('input[name="coverImageType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'url') {
+                document.getElementById('urlInputContainer').style.display = 'block';
+                document.getElementById('fileInputContainer').style.display = 'none';
+                document.getElementById('coverImage').value = '';
+            } else {
+                document.getElementById('urlInputContainer').style.display = 'none';
+                document.getElementById('fileInputContainer').style.display = 'block';
+                document.getElementById('coverImageFileInput').value = '';
+                document.getElementById('uploadedImagePreview').style.display = 'none';
+            }
+        });
+    });
+
+    // Dosya yükleme
+    document.getElementById('coverImageFileInput').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fileInputContainer = document.getElementById('fileInputContainer');
+        const statusDiv = document.getElementById('fileUploadStatus');
+        const previewDiv = document.getElementById('uploadedImagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const coverImageInput = document.getElementById('coverImage');
+
+        // Dosya boyutu kontrolü
+        if (file.size > 5 * 1024 * 1024) {
+            statusDiv.innerHTML = '<div class="alert alert-danger">Dosya boyutu 5MB\'dan büyük olamaz.</div>';
+            return;
+        }
+
+        statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Yükleniyor...';
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/blogpost/upload-image', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                statusDiv.innerHTML = '<div class="alert alert-success">Dosya başarıyla yüklendi!</div>';
+                document.getElementById('coverImageUrl').value = data.url; // URL'i hidden input'a kaydet
+                
+                // Önizleme göster
+                previewImg.src = data.url;
+                previewDiv.style.display = 'block';
+            } else {
+                statusDiv.innerHTML = `<div class="alert alert-danger">${data.message || 'Dosya yüklenirken hata oluştu.'}</div>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = '<div class="alert alert-danger">Dosya yüklenirken hata oluştu.</div>';
+            console.error('Upload error:', error);
+        }
+    });
 });
 
 // Form submit
@@ -126,12 +214,23 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
     submitSpinner.classList.remove('d-none');
     submitButton.disabled = true;
 
+    // Cover image URL'ini al (URL veya yüklenen dosyadan)
+    let coverImageUrl = null;
+    const coverImageType = document.querySelector('input[name="coverImageType"]:checked').value;
+    
+    if (coverImageType === 'url') {
+        coverImageUrl = document.getElementById('coverImage').value.trim() || null;
+    } else {
+        // Dosya yüklendiyse URL'i al
+        coverImageUrl = document.getElementById('coverImageUrl').value.trim() || null;
+    }
+
     const payload = {
         userId: user.id || user.Id,
         categoryId: parseInt(document.getElementById('categoryId').value),
         title: document.getElementById('title').value.trim(),
         content: document.getElementById('content').value.trim(),
-        coverImage: document.getElementById('coverImage').value.trim() || null
+        coverImage: coverImageUrl
     };
 
     try {

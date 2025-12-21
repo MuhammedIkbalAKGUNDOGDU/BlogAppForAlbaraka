@@ -102,10 +102,12 @@ namespace BlogApp.Controllers
     public class BlogPostApiController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public BlogPostApiController(AppDbContext context)
+        public BlogPostApiController(AppDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         // GET: api/blogpost/published
@@ -321,6 +323,66 @@ namespace BlogApp.Controllers
             }
 
             return Ok(post);
+        }
+
+        // POST: api/blogpost/upload-image
+        [HttpPost("upload-image")]
+        [LogActivity("Cover image yüklendi")]
+        public async Task<IActionResult> UploadCoverImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "Dosya seçilmedi." });
+            }
+
+            // Dosya tipi kontrolü (sadece resim)
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                return BadRequest(new { message = "Sadece resim dosyaları yüklenebilir (jpg, jpeg, png, gif, webp)." });
+            }
+
+            // Dosya boyutu kontrolü (max 5MB)
+            const long maxFileSize = 5 * 1024 * 1024; // 5MB
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest(new { message = "Dosya boyutu 5MB'dan büyük olamaz." });
+            }
+
+            try
+            {
+                // Uploads klasörünü oluştur
+                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "images");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Unique dosya adı oluştur (Guid + extension)
+                var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Dosyayı kaydet
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // URL oluştur
+                var fileUrl = $"/uploads/images/{uniqueFileName}";
+
+                return Ok(new { 
+                    message = "Dosya başarıyla yüklendi.", 
+                    url = fileUrl,
+                    fileName = uniqueFileName
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Dosya yüklenirken hata oluştu.", error = ex.Message });
+            }
         }
 
         // POST: api/blogpost/{id}/comment
