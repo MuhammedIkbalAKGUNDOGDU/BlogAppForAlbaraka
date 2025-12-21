@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BlogApp.Data;
 using BlogApp.Models;
+using BlogApp.Filters;
 
 namespace BlogApp.Controllers
 {
@@ -18,6 +19,7 @@ namespace BlogApp.Controllers
 
         // POST: api/user/{id}/follow
         [HttpPost("{id}/follow")]
+        [LogActivity("Kullanıcı takip durumu değiştirildi")]
         public async Task<IActionResult> ToggleFollow(int id, [FromBody] int followerId)
         {
             if (followerId <= 0)

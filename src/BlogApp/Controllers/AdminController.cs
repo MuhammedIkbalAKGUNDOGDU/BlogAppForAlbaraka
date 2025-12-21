@@ -107,6 +107,16 @@ namespace BlogApp.Controllers
             return View();
         }
 
+        public IActionResult ActivityLogs()
+        {
+            if (!IsAdminLoggedIn())
+            {
+                return RedirectToAction("Login");
+            }
+
+            return View();
+        }
+
         [HttpPost]
         public IActionResult Logout()
         {

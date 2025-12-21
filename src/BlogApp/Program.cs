@@ -51,7 +51,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpContextAccessor(); 
+builder.Services.AddHttpContextAccessor();
+
+// Activity Log Service - Scoped olarak ekle (her request için yeni instance)
+builder.Services.AddScoped<ActivityLogService>(); 
 
 // Email Service - Singleton olarak ekle (tek instance, tüm uygulama boyunca yaşar)
 builder.Services.AddSingleton<EmailService>();  

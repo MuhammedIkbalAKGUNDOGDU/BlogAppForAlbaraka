@@ -9,6 +9,7 @@ using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.DTOs;
 using BlogApp.Services;
+using BlogApp.Filters;
 
 namespace BlogApp.Controllers
 {
@@ -29,6 +30,7 @@ namespace BlogApp.Controllers
 
        
         [HttpPost("register")]
+        [LogActivity("Yeni kullanıcı kaydı")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
             // Email daha önce kullanılmış mı kontrol et
@@ -58,6 +60,7 @@ namespace BlogApp.Controllers
         }
 
         [HttpPost("login")]
+        [LogActivity("Kullanıcı girişi")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == dto.Email);
@@ -121,6 +124,7 @@ namespace BlogApp.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [LogActivity("Şifre sıfırlama talebi")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email))
@@ -232,6 +236,7 @@ namespace BlogApp.Controllers
         // ŞİFRE SIFIRLAMA - RESET PASSWORD
         // -------------------------------------------------------
         [HttpPost("reset-password")]
+        [LogActivity("Şifre sıfırlama işlemi")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Token))

@@ -1,0 +1,221 @@
+@{
+    ViewData["Title"] = "Aktivite Logları";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-clock-history"></i> Aktivite Logları</h5>
+    </div>
+    <div class="card-body">
+        <!-- Filtreleme -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label for="actionFilter" class="form-label">
+                    <i class="bi bi-gear"></i> Action
+                </label>
+                <select class="form-select" id="actionFilter">
+                    <option value="">Tüm Action'lar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="controllerFilter" class="form-label">
+                    <i class="bi bi-controller"></i> Controller
+                </label>
+                <select class="form-select" id="controllerFilter">
+                    <option value="">Tüm Controller'lar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="userIdFilter" class="form-label">
+                    <i class="bi bi-person"></i> Kullanıcı ID
+                </label>
+                <input type="number" class="form-control" id="userIdFilter" placeholder="Kullanıcı ID..." />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="loadLogs()">
+                    <i class="bi bi-search"></i> Filtrele
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Kullanıcı</th>
+                        <th>Action</th>
+                        <th>Controller</th>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>IP Adresi</th>
+                        <th>Açıklama</th>
+                        <th>Tarih</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sayfalama -->
+        <nav aria-label="Sayfa navigasyonu">
+            <ul class="pagination justify-content-center" id="pagination">
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+const pageSize = 50;
+
+// Sayfa yüklendiğinde filtreleri ve logları getir
+document.addEventListener('DOMContentLoaded', function() {
+    loadFilters();
+    loadLogs();
+});
+
+// Filtreleri yükle (action ve controller dropdown'larını doldur)
+async function loadFilters() {
+    try {
+        const response = await fetch('/api/admin/activity-logs/filters');
+        const data = await response.json();
+
+        if (response.ok) {
+            // Action dropdown'ını doldur
+            const actionSelect = document.getElementById('actionFilter');
+            data.actions.forEach(action => {
+                const option = document.createElement('option');
+                option.value = action;
+                option.textContent = action;
+                actionSelect.appendChild(option);
+            });
+
+            // Controller dropdown'ını doldur
+            const controllerSelect = document.getElementById('controllerFilter');
+            data.controllers.forEach(controller => {
+                const option = document.createElement('option');
+                option.value = controller;
+                option.textContent = controller;
+                controllerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Filtreler yüklenirken hata:', error);
+    }
+}
+
+async function loadLogs(page = 1) {
+    currentPage = page;
+    
+    const action = document.getElementById('actionFilter').value;
+    const controller = document.getElementById('controllerFilter').value;
+    const userId = document.getElementById('userIdFilter').value;
+
+    const params = new URLSearchParams({
+        page: page,
+        pageSize: pageSize
+    });
+
+    if (action) params.append('action', action);
+    if (controller) params.append('controller', controller);
+    if (userId) params.append('userId', userId);
+
+    try {
+        const response = await fetch(`/api/admin/activity-logs?${params}`);
+        const data = await response.json();
+
+        if (response.ok) {
+            displayLogs(data.logs);
+            displayPagination(data.page, data.totalPages);
+        } else {
+            showAlert('danger', data.message || 'Loglar yüklenirken hata oluştu');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('danger', 'Loglar yüklenirken hata oluştu');
+    }
+}
+
+function displayLogs(logs) {
+    const tbody = document.getElementById('logsTableBody');
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">Log bulunamadı</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => `
+        <tr>
+            <td>${log.id}</td>
+            <td>
+                ${log.userName !== 'Anonim' ? 
+                    `<strong>${log.userName}</strong><br><small class="text-muted">${log.userEmail || ''}</small>` : 
+                    '<span class="text-muted">Anonim</span>'}
+            </td>
+            <td><code>${log.action}</code></td>
+            <td><code>${log.controller}</code></td>
+            <td><span class="badge bg-info">${log.requestMethod}</span></td>
+            <td><small>${log.requestPath}</small></td>
+            <td><code>${log.ipAddress}</code></td>
+            <td>${log.description}</td>
+            <td><small>${new Date(log.createdAt).toLocaleString('tr-TR')}</small></td>
+        </tr>
+    `).join('');
+}
+
+function displayPagination(currentPage, totalPages) {
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    
+    // Önceki sayfa
+    html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadLogs(${currentPage - 1}); return false;">Önceki</a>
+    </li>`;
+
+    // Sayfa numaraları
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadLogs(${i}); return false;">${i}</a>
+            </li>`;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+
+    // Sonraki sayfa
+    html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadLogs(${currentPage + 1}); return false;">Sonraki</a>
+    </li>`;
+
+    pagination.innerHTML = html;
+}
+
+function showAlert(type, message) {
+    const alertContainer = document.getElementById('alertContainer');
+    alertContainer.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+}
+</script>
+

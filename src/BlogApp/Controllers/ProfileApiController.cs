@@ -6,6 +6,7 @@ using BCrypt.Net;
 using BlogApp.Data;
 using BlogApp.DTOs;
 using BlogApp.Models;
+using BlogApp.Filters;
 
 namespace BlogApp.Controllers
 {
@@ -22,6 +23,7 @@ namespace BlogApp.Controllers
 
         
         [HttpPut("update")]
+        [LogActivity("Profil güncellendi")]
         public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdateDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -47,6 +49,7 @@ namespace BlogApp.Controllers
         }
 
         [HttpPut("password")]
+        [LogActivity("Şifre değiştirildi")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));

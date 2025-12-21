@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.DTOs;
-using BlogApp.Services;  
+using BlogApp.Services;
+using BlogApp.Filters;  
 
 namespace BlogApp.Controllers
 {
@@ -89,6 +90,7 @@ namespace BlogApp.Controllers
 
         // POST: api/admin/approve-post/{id}
         [HttpPost("approve-post/{id}")]
+        [LogActivity("Blog yazısı onaylandı ve yayınlandı")]
         public async Task<IActionResult> ApprovePost(int id)
         {
             if (!IsAdminLoggedIn())
@@ -131,6 +133,7 @@ namespace BlogApp.Controllers
 
         // POST: api/admin/unpublish-post/{id}
         [HttpPost("unpublish-post/{id}")]
+        [LogActivity("Blog yazısı yayından kaldırıldı")]
         public async Task<IActionResult> UnpublishPost(int id)
         {
             if (!IsAdminLoggedIn())
@@ -159,6 +162,7 @@ namespace BlogApp.Controllers
 
         // DELETE: api/admin/delete-post/{id}
         [HttpDelete("delete-post/{id}")]
+        [LogActivity("Blog yazısı admin tarafından silindi")]
         public async Task<IActionResult> DeletePost(int id)
         {
             if (!IsAdminLoggedIn())
@@ -242,6 +246,7 @@ namespace BlogApp.Controllers
 
         // PUT: api/admin/update-user-status
         [HttpPut("update-user-status")]
+        [LogActivity("Kullanıcı durumu güncellendi")]
         public async Task<IActionResult> UpdateUserStatus([FromBody] UserStatusUpdateDto dto)
         {
             if (!IsAdminLoggedIn())
@@ -300,6 +305,7 @@ namespace BlogApp.Controllers
 
         // POST: api/admin/create-admin
         [HttpPost("create-admin")]
+        [LogActivity("Yeni admin kullanıcısı oluşturuldu")]
         public async Task<IActionResult> CreateAdmin([FromBody] AdminRegisterDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
@@ -363,6 +369,104 @@ namespace BlogApp.Controllers
             };
 
             return Ok(stats);
+        }
+
+        // GET: api/admin/activity-logs
+        [HttpGet("activity-logs")]
+        public async Task<IActionResult> GetActivityLogs(
+            [FromQuery] int? userId = null,
+            [FromQuery] string? action = null,
+            [FromQuery] string? controller = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            if (!IsAdminLoggedIn())
+            {
+                return Unauthorized(new { message = "Admin yetkisi gereklidir." });
+            }
+
+            var query = _context.ActivityLogs
+                .Include(log => log.User)
+                .AsQueryable();
+
+            // Filtreleme
+            if (userId.HasValue)
+            {
+                query = query.Where(log => log.UserId == userId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(action))
+            {
+                query = query.Where(log => log.Action == action);
+            }
+
+            if (!string.IsNullOrEmpty(controller))
+            {
+                query = query.Where(log => log.Controller == controller);
+            }
+
+            // Toplam kayıt sayısı
+            var totalCount = await query.CountAsync();
+
+            // Sayfalama
+            var logs = await query
+                .OrderByDescending(log => log.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(log => new
+                {
+                    log.Id,
+                    log.UserId,
+                    UserName = log.User != null ? $"{log.User.FirstName} {log.User.LastName}" : "Anonim",
+                    UserEmail = log.User != null ? log.User.Email : null,
+                    log.Action,
+                    log.Controller,
+                    log.RequestMethod,
+                    log.RequestPath,
+                    log.IPAddress,
+                    log.Description,
+                    log.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                logs,
+                totalCount,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+
+        // GET: api/admin/activity-logs/filters
+        [HttpGet("activity-logs/filters")]
+        public async Task<IActionResult> GetActivityLogFilters()
+        {
+            if (!IsAdminLoggedIn())
+            {
+                return Unauthorized(new { message = "Admin yetkisi gereklidir." });
+            }
+
+            // Tüm unique action'ları getir
+            var actions = await _context.ActivityLogs
+                .Select(log => log.Action)
+                .Distinct()
+                .OrderBy(a => a)
+                .ToListAsync();
+
+            // Tüm unique controller'ları getir
+            var controllers = await _context.ActivityLogs
+                .Select(log => log.Controller)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                actions,
+                controllers
+            });
         }
 
         private bool IsAdminLoggedIn()

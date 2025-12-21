@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BlogApp.Data;
 using BlogApp.DTOs;
 using BlogApp.Models;
+using BlogApp.Filters;
 
 namespace BlogApp.Controllers
 {
@@ -31,6 +32,7 @@ namespace BlogApp.Controllers
         }
 
         [HttpPost]
+        [LogActivity("Kategori oluşturuldu")]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDto dto)
         {
             if (!IsAdminLoggedIn())
@@ -62,6 +64,7 @@ namespace BlogApp.Controllers
         }
 
         [HttpDelete("{id}")]
+        [LogActivity("Kategori silindi")]
         public async Task<IActionResult> Delete(int id)
         {
             if (!IsAdminLoggedIn())

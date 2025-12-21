@@ -3,6 +3,7 @@ using BlogApp.DTOs;
 using BlogApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BlogApp.Filters;
 
 namespace BlogApp.Controllers
 {
@@ -23,6 +24,7 @@ namespace BlogApp.Controllers
 
         // POST: BlogPost/Create
         [HttpPost]
+        [LogActivity("Blog yazısı oluşturuldu")]
         public async Task<IActionResult> Create([FromBody] BlogPostCreateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Content))
@@ -323,6 +325,7 @@ namespace BlogApp.Controllers
 
         // POST: api/blogpost/{id}/comment
         [HttpPost("{id}/comment")]
+        [LogActivity("Yorum eklendi")]
         public async Task<IActionResult> AddComment(int id, [FromBody] CommentCreateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Content))
@@ -370,6 +373,7 @@ namespace BlogApp.Controllers
 
         // POST: api/blogpost/{id}/like
         [HttpPost("{id}/like")]
+        [LogActivity("Blog yazısı beğenildi/beğeni kaldırıldı")]
         public async Task<IActionResult> ToggleLike(int id, [FromBody] int userId)
         {
             if (userId <= 0)
@@ -460,6 +464,7 @@ namespace BlogApp.Controllers
 
         // PUT: api/blogpost/{id}
         [HttpPut("{id}")]
+        [LogActivity("Blog yazısı güncellendi")]
         public async Task<IActionResult> UpdatePost(int id, [FromBody] BlogPostUpdateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Content))
@@ -514,6 +519,7 @@ namespace BlogApp.Controllers
 
         // DELETE: api/blogpost/{id}
         [HttpDelete("{id}")]
+        [LogActivity("Blog yazısı silindi")]
         public async Task<IActionResult> DeletePost(int id, [FromQuery] int userId)
         {
             if (userId <= 0)
