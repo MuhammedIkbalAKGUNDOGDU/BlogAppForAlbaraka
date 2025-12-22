@@ -13,10 +13,10 @@ public class ActivityLog
     public string RequestMethod { get; set; } = string.Empty; 
     public string RequestPath { get; set; } = string.Empty; 
     
-    public string IPAddress { get; set; } = string.Empty; // Kullanıcı IP adresi
+    public string IPAddress { get; set; } = string.Empty; 
     
-    public string Description { get; set; } = string.Empty; // İşlem açıklaması
+    public string Description { get; set; } = string.Empty; 
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Log oluşturulma tarihi
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 }
 

@@ -79,7 +79,7 @@ namespace BlogApp.Controllers
 
             if (user.Status == UserStatus.Suspended)
             {
-                return BadRequest(new { message = "Hesabınız askıya alınmıştır. Giriş yapamazsınız. Lütfen yönetici ile iletişime geçin." });
+                return BadRequest(new { message = "Hesabınız askıya alınmıştır(5 GÜN SÜREYLE). Giriş yapamazsınız. Lütfen yönetici ile iletişime geçin." });
             }
 
             // JWT Token üret
