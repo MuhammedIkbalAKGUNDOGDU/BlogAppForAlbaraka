@@ -7,8 +7,8 @@ namespace BlogApp.Services;
 public class UserAutoActivationService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // Her saat kontrol et
-    private readonly int _suspensionDays = 5; // 5 gün sonra aktif et
+    private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // Burası da dinamik olabilir
+    private readonly int _suspensionDays = 5; //ilerisi için burayı dinamikte yapabilirim aslında şuan böyle kalması yeyterli 
 
     public UserAutoActivationService(IServiceProvider serviceProvider)
     {
@@ -59,7 +59,7 @@ public class UserAutoActivationService : BackgroundService
             {
                 user.Status = UserStatus.Active;
                 user.IsActive = true;
-                user.SuspendedAt = null; // Tarihi temizle
+                user.SuspendedAt = null; // suspend sıfırlama
 
                 Console.WriteLine($"Kullanıcı aktif edildi: {user.Email} (ID: {user.Id})");
             }
